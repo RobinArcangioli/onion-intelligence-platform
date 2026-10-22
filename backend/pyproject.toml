@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "onion-intelligence-platform-backend"
-version = "0.5.0"
-description = "OIP authorized Tor collection with offline documentary classification and public CTI signals"
+version = "0.6.0"
+description = "OIP authorized Tor collection, offline CTI signals, alerts and bounded reporting"
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
 dependencies = [

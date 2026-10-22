@@ -130,3 +130,19 @@ Voir `docs/09-lot3-analyse-decouverte.md`.
 - Limites : règles lexicales non exhaustives ; pas de vérification d'identifiants CVE ni de faits, pas de RBAC, pas d'alerte, pas de Docker local ici.
 
 Voir `docs/10-lot4-cti-classification.md`.
+
+
+## Livraison 0.6.0 — Lot 5 : alertes et rapports
+
+**État :** code implémenté ; tests Python/SQLite exécutés localement, validation
+Docker/PostgreSQL du lot 5 attendue sur le poste opérateur.
+
+- Alertes déterministes et dédupliquées, catégories de signaux CTI, mots-clés,
+  changements et score ; pour pages sensibles, alerte minimale de revue uniquement.
+- Résolution et acquittement manuels avec audit, sans envoi d'email.
+- Rapports immuables en base, exports JSON/CSV de codes et comptages seulement.
+- Migration `0006_alerts_reports` : tables `alerts` et `reports`, données antérieures préservées.
+- Aucune rétroanalyse historique, aucun changement de périmètre réseau.
+- Limitations : RBAC et rétention automatique non développés.
+
+Voir `docs/11-lot5-alertes-rapports.md`.

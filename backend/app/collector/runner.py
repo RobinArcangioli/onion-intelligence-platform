@@ -11,6 +11,7 @@ from app.collector.extract import extract_html
 from app.analyzers.keywords import RuleSpec, analyze_text, MAX_RULES_PER_JOB
 from app.collector.transport import CollectError, fetch_onion_root
 from app.classifiers.rules import classify_document, RULESET_VERSION
+from app.alerts.engine import emit_observation_alerts
 from app.models import (AuditLog, CrawlJob, DiscoveredOnion, OnionSource, SourceObservation,
                         Watchlist, WatchlistRule, KeywordMatch, ClassificationResult, ThreatIndicator)
 from app.security.onion import canonical_onion_root
@@ -152,6 +153,7 @@ async def collect_one(source_id: uuid.UUID, factory: sessionmaker[Session], *, f
         if classification.quarantine:
             source.collection_enabled = False
             _audit(session, source_id, "collection.sensitive_quarantine", job_id)
+        emit_observation_alerts(session, observation)
         source.availability_status = "AVAILABLE"
         job.status = "COMPLETED"
         job.finished_at = _utcnow()

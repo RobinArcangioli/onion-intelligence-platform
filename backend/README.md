@@ -7,3 +7,12 @@
 # OIP API
 
 Module Python du MVP de la plateforme. Pour les instructions de démarrage, voir `../README.md`.
+
+
+## Lot 5 — alertes et rapports (v0.6.0)
+
+Deux nouvelles tables `alerts` et `reports`, migrations Alembic `0006_alerts_reports`.
+Routes protégées `GET/PATCH /api/v1/alerts`, `GET/POST /api/v1/reports`,
+`GET /api/v1/reports/{id}/export?format=json|csv`.
+Les rapports sont des snapshots metadata-only; aucune navigation Onion supplémentaire.
+Voir `../docs/11-lot5-alertes-rapports.md`.

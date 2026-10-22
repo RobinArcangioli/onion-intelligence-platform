@@ -1,16 +1,22 @@
 # ONION INTELLIGENCE PLATFORM (OIP)
 
-**Version :** 0.5.0 — Lot 4, classification et CTI hors ligne.
+**Version :** 0.6.0 — Lot 5, alertes locales et rapports JSON/CSV.
 
-**État :** 135 tests locaux réussis ; migration 0005 vérifiée sur SQLite et SQL PostgreSQL généré hors ligne. Le déploiement Docker/PostgreSQL réel du lot 4 reste à valider chez l'opérateur. Aucune requête vers Tor n'a été exécutée pendant les tests.
+**État :** 157 tests locaux réussis ; migration `0006_alerts_reports` validée sur SQLite, SQL PostgreSQL généré hors ligne. Déploiement Docker/PostgreSQL réel de ce lot à confirmer sur le poste opérateur. Aucune requête Tor réelle pendant les tests.
 
-Le lot 4 propose des **catégories heuristiques** et des indices CTI non vérifiés, avec revue humaine. Les textes complets de pages ne sont pas conservés. Les découvertes ne sont toujours pas explorées automatiquement ; une suspicion sensible désactive les futures collectes de la source jusqu'à intervention humaine. Voir [le guide complet du lot 4](docs/10-lot4-cti-classification.md).
+Le lot 5 ajoute des alertes locales dédupliquées, des états audités et des
+rapports persistants exportables en JSON/CSV, sans contenu brut ni navigation
+Tor supplémentaire. Voir [le guide du lot 5](docs/11-lot5-alertes-rapports.md).
+
+**Rappel :** le lot 4 assure la classification heuristique et les signaux CTI
+non vérifiés, avec revue humaine et quarantaine sensible. Les fichiers
+historiques sont conservés et aucune découverte n'est explorée automatiquement.
 
 ```bash
 sudo docker compose config --quiet
 sudo docker compose --profile test run --build --rm tests
 sudo docker compose up --build -d
-sudo docker compose exec api alembic current  # 0005_cti_classification (head)
+sudo docker compose exec api alembic current  # 0006_alerts_reports (head)
 curl -fsS http://127.0.0.1:8000/api/ready
 ```
 
@@ -312,3 +318,16 @@ git commit -m "feat: add source lifecycle and audit (lot 1)"
 ```
 
 Pour la liste exhaustive des routes, les exemples d'import et la stratégie de migration : [`docs/07-lot1-gestion-sources.md`](docs/07-lot1-gestion-sources.md).
+
+
+## Livraison 0.6.0 — Lot 5 : alertes et rapports
+
+- Alertes de veille **locales**, dédupliquées par source/contenu/signal, statuts
+  de traitement audités ; aucune communication sortante supplémentaire.
+- Rapports JSON et CSV figés, métadonnées uniquement, filtres temporels
+  et de source, export borné et signalement de troncature.
+- Migration `0006_alerts_reports` (deux nouvelles tables, aucun effacement),
+  intégration au collecteur contrôlé, aucune collecte automatique.
+- **Nouvelles API** : `/api/v1/alerts`, `/api/v1/reports` (authentifiées).
+- **Guide de déploiement, endpoints et limites** :
+  [`docs/11-lot5-alertes-rapports.md`](docs/11-lot5-alertes-rapports.md).

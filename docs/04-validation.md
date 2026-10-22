@@ -113,3 +113,12 @@ cd backend && python -m pytest -q -p no:cacheprovider
 - PyYAML a chargé `compose.yaml` : aucun port publié pour Tor ni collector dans la configuration.
 - **Aucun conteneur Docker, serveur PostgreSQL réel ou service Onion n'a été démarré dans cet environnement.** La validation du lot 4 sur la machine opérateur est indispensable avant son tag Git.
 - Les tests démontrent des comportements déterministes sur corpus fictifs, **pas** la pertinence CTI en situation réelle ni une isolation réseau prouvée.
+
+
+## Lot 5 (v0.6.0) — contrôle local
+
+- Tests de non-régression depuis lot 0 et tests de notifications locales
+  et de génération JSON/CSV, sans réseau.
+- Migration de v0.5.0 vers v0.6.0 testée sur SQLite avec données existantes.
+- Conformité de métadonnées vérifiable par `alembic check`.
+- PostgreSQL/Docker/Tor du lot 5 : validation sur poste opérateur requise.
