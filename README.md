@@ -1,7 +1,9 @@
 # ONION INTELLIGENCE PLATFORM (OIP)
 
-**Version :** 0.1.0 — Lot 0, fondations locales.  
-**Statut :** code initial et tests locaux opérationnels; déploiement Docker/PostgreSQL réel **non exécuté dans l'environnement de livraison** (Docker indisponible).  
+**Version :** 0.1.0 — Lot 0, fondations locales.
+
+**Statut :** lot 0 validé sur le poste de développement (Docker Compose, API, PostgreSQL et tests pytest).
+
 **Langue de la documentation :** français.
 
 Plateforme de veille documentaire sur sources Onion publiques et explicitement autorisées. Cette livraison implémente le socle de gestion de sources, sans aucun accès Tor. Elle **ne** découvre, ne visite, ne télécharge et ne classe aucun site à ce stade.
@@ -14,8 +16,8 @@ Plateforme de veille documentaire sur sources Onion publiques et explicitement a
 - Ajout manuel exigeant `authorization_confirmed=true` et une note descriptive d'autorisation.
 - Validation syntaxique et checksum des racines `.onion` v3; aucun accès réseau.
 - Journal d'audit de création, réponse 409 sur doublon, pagination.
-- PostgreSQL 17 et API définis dans Docker Compose (aucun port DB publié, API sur loopback).
-- Tests hors ligne utilisant SQLite en mémoire et migration SQLite temporaire.
+- PostgreSQL 17 et API sur réseau Docker interne (aucun port direct publié), avec passerelle Nginx non privilégiée exposée uniquement sur `127.0.0.1:8000`.
+- Tests hors ligne utilisant SQLite en mémoire et migration SQLite temporaire; 20 tests validés dans le conteneur `tests`.
 
 ## Arborescence exacte — fichiers présents
 
@@ -26,6 +28,9 @@ onion-intelligence-platform/
 ├── .gitignore
 ├── compose.yaml
 ├── README.md
+├── infrastructure/
+│   └── nginx/
+│       └── default.conf
 ├── backend/
 │   ├── .dockerignore
 │   ├── Dockerfile
@@ -101,7 +106,7 @@ curl -fsS http://127.0.0.1:8000/api/health
 curl -fsS http://127.0.0.1:8000/api/ready
 ```
 
-Au démarrage de `api`, `alembic upgrade head` applique les migrations à PostgreSQL **avant** le lancement d'Uvicorn. `api` attend que le `healthcheck` de `db` devienne sain. Si la migration échoue, le processus API ne démarre pas.
+Au démarrage de `api`, `alembic upgrade head` applique les migrations à PostgreSQL **avant** le lancement d'Uvicorn. `api` attend que le `healthcheck` de `db` devienne sain. La passerelle locale `gateway` attend que l’API soit saine et relaie les requêtes HTTP vers le réseau privé. Si la migration échoue, le processus API ne démarre pas, et la passerelle ne devient pas opérationnelle.
 
 Réponses attendues :
 
@@ -114,7 +119,7 @@ Inspecter les tables :
 
 ```bash
 docker compose exec db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "\\dt"'
-docker compose logs --tail=100 api
+docker compose logs --tail=100 api gateway
 docker compose exec api alembic current
 ```
 
@@ -155,7 +160,7 @@ python -m pip install -e '.[dev]'
 python -m pytest -q -p no:cacheprovider
 ```
 
-**Note :** le test de migration inclus valide Alembic sur un fichier SQLite temporaire; le test d'intégration PostgreSQL/Docker doit être exécuté séparément. Lire `docs/04-validation.md` pour les résultats réellement obtenus.
+**Validation du 22 octobre 2026 sur le poste de développement :** `20 passed, 1 warning in 1.15s` via Docker Compose. Les routes `/api/health` et `/api/ready` renvoient `200` via Nginx, et PostgreSQL est `healthy`. Le test de migration automatisé valide SQLite; les migrations PostgreSQL ont démarré sans erreur dans les journaux du conteneur API. Voir `docs/04-validation.md`.
 
 ## Arrêt et conservation des données
 
@@ -187,9 +192,31 @@ La commande ci-dessus conserve le volume PostgreSQL. **Attention :** `docker com
 ## Initialiser Git
 
 ```bash
-git init
-git add .
-git commit -m "feat: bootstrap OIP API, database schema and offline tests"
+git init -b main  # uniquement si le dépôt n'existe pas déjà
+# À l'issue du lot 0 :
+git add -A
+git diff --cached --check
+git commit -m "chore: validate OIP infrastructure lot 0"
+git tag -a v0.1.0-lot0 -m "OIP : lot 0 validé"
 ```
 
 Le fichier `.env` n'est pas inclus dans l'archive et est exclu de Git par `.gitignore`.
+
+## Correctif local du 22/10/2026 : exposition du port 8000
+
+Le réseau `private` possède `internal: true`; sur certaines versions de Docker, un conteneur exclusivement connecté à ce réseau ne publie pas son port sur l'hôte malgré `ports:`. La solution est une passerelle Nginx non privilégiée sur deux réseaux : `ingress` standard pour le port hôte, `private` pour joindre l'API. Les conteneurs `api` et `db` restent connectés uniquement à `private`, sans publication directe de ports.
+
+Après remplacement des fichiers, exécuter :
+
+```bash
+docker compose down              # SANS -v, pour conserver PostgreSQL
+docker compose config            # vérifier la configuration
+docker compose up --build -d
+docker compose ps -a
+docker compose logs --tail=80 api gateway
+docker compose port gateway 8080 # attendu : 127.0.0.1:8000
+curl --fail-with-body http://127.0.0.1:8000/api/health
+curl --fail-with-body http://127.0.0.1:8000/api/ready
+```
+
+Cette architecture ne garantit pas l'absence de toutes les sorties réseau de `gateway`, connecté à `ingress`; limiter ses destinations sortantes via le pare-feu hôte pour une politique stricte. Le composant collecteur Tor n'existe pas encore et ne partage pas `ingress`. Le proxy ne rend pas l'API utilisable sur un réseau public : la liaison est strictement locale à `127.0.0.1` dans les conditions habituelles de Docker récent.

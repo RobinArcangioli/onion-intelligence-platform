@@ -4,7 +4,8 @@
 
 ```mermaid
 flowchart LR
-  Operateur[Opérateur local] -->|HTTP 127.0.0.1:8000 et clé API| API[FastAPI]
+  Operateur[Opérateur local] -->|HTTP 127.0.0.1:8000| GW[Nginx gateway]
+  GW -->|HTTP 8000 et X-API-Key pour les routes sources| API[FastAPI]
   API -->|SQLAlchemy / psycopg| DB[(PostgreSQL 17)]
   Migr[Alembic au démarrage] --> DB
   Tests[pytest + TestClient + SQLite] -. tests hors réseau .-> API
@@ -12,7 +13,7 @@ flowchart LR
   Compose -.orchestre .-> DB
 ```
 
-Le service `db` est joignable uniquement depuis le réseau Docker privé; aucun port PostgreSQL n'est publié. Le service `api` publie son port uniquement sur l'interface loopback. Son conteneur est exécuté sans privilèges, en lecture seule avec `/tmp` éphémère; il n'embarque pas Tor.
+Les services `db` et `api` résident uniquement sur le réseau Docker `private` (`internal: true`) sans publication directe de ports. La passerelle Nginx non privilégiée joint `api` via `private` et publie seule `127.0.0.1:8000` via le réseau `ingress`. Le conteneur API est exécuté sans privilèges, en lecture seule avec `/tmp` éphémère; il n'embarque pas Tor.
 
 ### Parcours des requêtes
 

@@ -13,6 +13,22 @@ build/
 *.db
 .DS_Store
 
-# Sauvegardes et journaux locaux
+# Sauvegardes, archives et logs locaux (ne jamais committer les secrets).
 *.bak
 *.log
+/*.zip
+/OIP_correctif_reseau_2_fichiers/
+
+# Fragments de sortie Docker accidentellement créés à la racine.
+/=
+/CACHED
+/\[internal\]
+/\[runtime
+/\[test
+/exporting
+/naming
+/reading
+/resolve
+/resolving
+/transferring
+/unpacking

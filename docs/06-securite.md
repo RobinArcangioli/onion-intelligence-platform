@@ -16,7 +16,7 @@
 - Confirmation d'autorisation explicite lors de l'ajout manuel et note requise.
 - `collection_enabled=false` pour toutes les sources nouvellement créées.
 - Clé API présente dans l'environnement, vérifiée en temps constant et imposée aux routes sources; longueur minimale de 32 caractères, rejet des placeholders.
-- PostgreSQL non exposé à l'hôte; API liée à `127.0.0.1`, réseau Docker interne; conteneur API sans root/capacités et rootfs read-only.
+- PostgreSQL et FastAPI non exposés directement à l'hôte, réseau Docker `private` interne; passerelle Nginx liée à `127.0.0.1:8000` via un réseau `ingress`. Conteneur API sans root/capacités et rootfs read-only.
 - API d'administration avec entêtes `nosniff` et `no-store`.
 - Journalisation métier de la création sans conserver de clé.
 
