@@ -29,6 +29,9 @@ class ObservationOut(ORMOutput):
     description: str
     text_sha256: str
     text_length: int
+    change_status: str
+    relevance_score: int
+    keyword_hits: int
     discovered_links: int
     created_at: datetime
 
@@ -38,6 +41,8 @@ class DiscoveryOut(ORMOutput):
     source_id: uuid.UUID
     target_url: str
     status: str
+    evidence_kind: str
+    reviewed_at: datetime | None
     first_seen_at: datetime
     last_seen_at: datetime
 

@@ -115,3 +115,18 @@ Index composite `(entity_type, entity_id)`. L'auteur est pour l'instant `api_key
 - `audit_logs.details` TEXT NOT NULL DEFAULT '{}' : JSON sérialisé pour les motifs et noms de champs modifiés, pas pour des contenus collectés.
 
 Les sources antérieures à la migration conservent leur statut d'autorisation. Une source supprimée et restaurée revient **non approuvée** et **désactivée**, avec `collection_enabled=false`.
+
+## Schéma effectivement livré — révision `0004_intelligence` (lot 3)
+
+Le diagramme conceptuel plus haut décrit toujours une **cible** ; certaines entités et colonnes ont des noms différents dans l'implémentation actuelle. Les migrations `0001` → `0004` introduisent réellement :
+
+- `onion_sources`, `audit_logs`, `crawl_jobs`, `source_observations`, `discovered_onions` (lots précédents).
+- `watchlists` (`id`, `name` UNIQUE, `is_active`, `created_at`).
+- `watchlist_rules` (`watchlist_id` FK, expression littérale et sa normalisation, poids 1–30 validé côté API, `is_active`, dates ; unicité de l'expression normalisée par watchlist).
+- `keyword_matches` (FK observation et règle ; occurrence, contribution au score, date ; contrainte unique règle/observation ; **aucun contexte ou texte brut**).
+
+Nouvelles colonnes `source_observations` : `relevance_score` (0–100 calculé côté application), `keyword_hits` et `change_status` (`UNKNOWN` pour historiques, sinon `FIRST_SEEN` / `UNCHANGED` / `MODIFIED`).
+
+Nouvelles colonnes `discovered_onions` : `evidence_kind` (`LINK`, `TEXT`, `BOTH`), `review_reason`, `reviewed_at` ; `status` existant utilise `PENDING`, `APPROVED`, `REJECTED`.
+
+Une `discovered_onions.status=APPROVED` ne donne aucun droit de collecte ; seule `onion_sources` avec autorisation valide et collecte activée constitue le périmètre réseau. Les règles d'autorisation restent exclusivement appliquées par le runner de collecte.

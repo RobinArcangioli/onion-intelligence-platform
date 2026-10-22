@@ -32,6 +32,6 @@ def test_lot1_upgrade_preserves_existing_source_and_blocks_unapproved(tmp_path: 
     with engine.connect() as con:
         row = con.execute(text("SELECT name,approved_for_collection,collection_enabled FROM onion_sources WHERE id=:id"), {"id": uid}).one()
         assert row == ("Previously approved", 1, 0)
-        assert con.execute(text("SELECT version_num FROM alembic_version")).scalar() == "0003_tor_collection"
+        assert con.execute(text("SELECT version_num FROM alembic_version")).scalar() == "0004_intelligence"
     assert {"crawl_jobs", "source_observations", "discovered_onions"}.issubset(set(inspect(engine).get_table_names()))
     engine.dispose()

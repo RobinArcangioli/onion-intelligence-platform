@@ -1,5 +1,29 @@
 # ONION INTELLIGENCE PLATFORM (OIP)
 
+**Version :** 0.4.0 — Lot 3, analyse textuelle et découverte Onion contrôlées.
+
+**État :** lots précédents validés selon les contrôles communiqués par l'opérateur ; code lot 3 implémenté, **113 tests locaux réussis**. Migration PostgreSQL réelle / Docker du lot 3 à confirmer sur le poste opérateur. Aucun site Onion réel consulté pendant les tests livrés.
+
+## Déploiement et contrôle du lot 3
+
+Ce lot ajoute les watchlists d'expressions exactes, la détection de candidats Onion v3 dans les `href` et textes, un score explicable, le suivi des modifications par empreinte et la revue manuelle de candidats. **Pas de navigation automatique**, pas de stockage des corps HTML, pas de contrôle d'un site non autorisé.
+
+Documentation et commandes détaillées : [`docs/09-lot3-analyse-decouverte.md`](docs/09-lot3-analyse-decouverte.md).
+
+```bash
+sudo docker compose config --quiet
+sudo docker compose --profile test run --build --rm tests
+sudo docker compose up --build -d
+sudo docker compose exec api alembic current  # 0004_intelligence attendu
+curl -fsS http://127.0.0.1:8000/api/ready
+```
+
+La configuration `.env` existante est conservée ; aucune modification des secrets n'est nécessaire. Les règles de surveillance se configurent dans `/api/v1/watchlists`. Le collecteur reste manuel, limité à la racine des sources approuvées, et n'est jamais lancé par l'API.
+
+---
+
+## Documentation historique du lot 2
+
 **Version :** 0.3.0 — Lot 2, collecte Tor ponctuelle et contrôlée.
 
 **Statut :** lot 0 et lot 1 validés par l'opérateur ; lot 2 implémenté, **103 tests locaux réussis**. Démarrage Docker/Tor réel et migration PostgreSQL du lot 2 à vérifier sur le poste opérateur.

@@ -78,3 +78,8 @@ Chaque lot doit mettre à jour `docs/04-validation.md` et `docs/05-etat-du-proje
 - Lot 1 : déclaré validé par l'opérateur.
 - Lot 2 : collecteur Tor manuel, tests locaux réussis ; **à valider sur le poste opérateur**. Détails : `docs/08-lot2-collecte-tor.md`.
 - Prochaines phases : navigation interne autorisée avec quotas, politique de rétention, classification/alertes, dashboard.
+
+
+## Avancement au 23/10/2026 — Lot 3
+
+La livraison 0.4.0 inclut l'extraction améliorée, le suivi des empreintes, la découverte des liens/textes et la première analyse déterministe par watchlist. Ces fonctions chevauchent volontairement une partie du lot 4 envisagé initialement. La classification prudente, les alertes et le tableau de bord restent à développer. Voir `docs/09-lot3-analyse-decouverte.md`.

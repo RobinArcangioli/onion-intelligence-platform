@@ -99,3 +99,19 @@ La documentation de lot 0 peut être enregistrée dans Git. Le tag prévu est `v
 - Migration `0003_tor_collection`, nouvelles tables `crawl_jobs`, `source_observations`, `discovered_onions`.
 - Tests locaux 103/103 : tests hérités et tests lot 2 avec collectes fictives.
 - À faire : validation Docker Tor réel/PostgreSQL, RBAC, quotas temporels, rétention, classification de contenu sensible avant extension des collectes.
+
+
+## Livraison 0.4.0 — Lot 3 : analyse et découverte contrôlée
+
+**Date :** 23 octobre 2026. **État :** code implémenté, 113 tests locaux réussis (hors réseau), schéma Alembic SQLite sans dérive et SQL PostgreSQL généré. Déploiement PostgreSQL/Docker réel de ce lot à confirmer sur le poste opérateur.
+
+- Extraction HTML/plaintext transitoire, effacement de script, normalisation, SHA-256 ; distinction première vue / inchangée / modifiée.
+- Recherche de termes exacts de watchlist en mémoire, comptes et contributions au score de pertinence, pas d'extraits enregistrés.
+- Détection checksum Onion v3 `LINK`, `TEXT` ou `BOTH`, 50 candidats maximum, file `PENDING` sans visite.
+- Décision de revue `APPROVED` / `REJECTED` avec `reason` court, neutre et en anglais ; revue sans activation de collecte.
+- Migration 0004, 3 tables nouvelles, 5 champs enrichis sur observations/découvertes, audit des opérations.
+- RBAC, rétention, classification sensible et alertes restent hors périmètre du lot 3.
+
+**Point de sécurité :** `APPROVED` sur une découverte ne transforme jamais la cible en source approuvée ni active. L'ancien module de gestion des sources reste le seul canal d'approbation.
+
+Voir `docs/09-lot3-analyse-decouverte.md`.

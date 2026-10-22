@@ -8,8 +8,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.collector.extract import extract_html
+from app.analyzers.keywords import RuleSpec, analyze_text, MAX_RULES_PER_JOB
 from app.collector.transport import CollectError, fetch_onion_root
-from app.models import AuditLog, CrawlJob, DiscoveredOnion, OnionSource, SourceObservation
+from app.models import (AuditLog, CrawlJob, DiscoveredOnion, OnionSource, SourceObservation,
+                        Watchlist, WatchlistRule, KeywordMatch)
 from app.security.onion import canonical_onion_root
 
 
@@ -49,6 +51,14 @@ async def collect_one(source_id: uuid.UUID, factory: sessionmaker[Session], *, f
         except ValueError as exc:
             raise NotAuthorizedError("Adresse enregistrée invalide") from exc
         url = source.canonical_url
+        # Active rules are snapshotted once; later edits apply on future jobs only.
+        active_rules = session.scalars(
+            select(WatchlistRule).join(Watchlist, Watchlist.id == WatchlistRule.watchlist_id)
+            .where(Watchlist.is_active.is_(True), WatchlistRule.is_active.is_(True))
+            .order_by(WatchlistRule.created_at, WatchlistRule.id)
+            .limit(MAX_RULES_PER_JOB)
+        ).all()
+        rules = [RuleSpec(item.id, item.phrase, item.weight) for item in active_rules]
         job = CrawlJob(source_id=source_id, status="RUNNING", started_at=_utcnow())
         session.add(job)
         session.flush()
@@ -59,6 +69,7 @@ async def collect_one(source_id: uuid.UUID, factory: sessionmaker[Session], *, f
     try:
         result = await fetcher(url)
         extracted = extract_html(result.body, result.encoding, content_type=result.content_type, page_url=url)
+        analysis = analyze_text(extracted.transient_text, rules)
     except CollectError as exc:
         error_code = exc.code
     except Exception:
@@ -84,22 +95,44 @@ async def collect_one(source_id: uuid.UUID, factory: sessionmaker[Session], *, f
             session.commit()
             return job_id, "FAILED"
 
-        session.add(SourceObservation(
+        prior = session.scalar(select(SourceObservation)
+                               .where(SourceObservation.source_id == source_id)
+                               .order_by(SourceObservation.created_at.desc(), SourceObservation.id.desc())
+                               .limit(1))
+        if prior is None:
+            change_status = "FIRST_SEEN"
+        elif prior.text_sha256 == extracted.text_sha256:
+            change_status = "UNCHANGED"
+        else:
+            change_status = "MODIFIED"
+        observation = SourceObservation(
             job_id=job_id, source_id=source_id, http_status=result.status,
             content_type=result.content_type, response_bytes=len(result.body),
             title=extracted.title, description=extracted.description,
             text_sha256=extracted.text_sha256, text_length=extracted.text_length,
             discovered_links=len(extracted.onion_roots),
-        ))
-        for target in extracted.onion_roots:
+            change_status=change_status,
+            relevance_score=analysis.score,
+            keyword_hits=sum(hit.occurrences for hit in analysis.hits),
+        )
+        session.add(observation)
+        session.flush()
+        for hit in analysis.hits:
+            session.add(KeywordMatch(observation_id=observation.id, rule_id=hit.rule_id,
+                                     occurrences=hit.occurrences, contribution=hit.contribution))
+        for candidate in extracted.candidates:
+            target = candidate.root
             existing = session.scalar(select(DiscoveredOnion).where(
                 DiscoveredOnion.source_id == source_id,
                 DiscoveredOnion.target_url == target,
             ))
             if existing:
                 existing.last_seen_at = _utcnow()
+                existing.evidence_kind = candidate.evidence_kind
+                # Never override operator review or trigger a follow-up collection.
             else:
-                session.add(DiscoveredOnion(source_id=source_id, target_url=target, status="PENDING"))
+                session.add(DiscoveredOnion(source_id=source_id, target_url=target,
+                                            status="PENDING", evidence_kind=candidate.evidence_kind))
         source.availability_status = "AVAILABLE"
         job.status = "COMPLETED"
         job.finished_at = _utcnow()

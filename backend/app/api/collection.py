@@ -37,8 +37,10 @@ def list_observations(source_id: uuid.UUID | None = None, limit: int = Query(50,
 
 
 @router.get("/discoveries")
-def list_discoveries(source_id: uuid.UUID | None = None, limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0), db: Session = Depends(get_session)) -> dict:
+def list_discoveries(source_id: uuid.UUID | None = None, status: str | None = Query(None, pattern="^(PENDING|APPROVED|REJECTED)$"), limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0), db: Session = Depends(get_session)) -> dict:
     conditions = [] if source_id is None else [DiscoveredOnion.source_id == source_id]
+    if status is not None:
+        conditions.append(DiscoveredOnion.status == status)
     total = db.scalar(select(func.count()).select_from(DiscoveredOnion).where(*conditions)) or 0
     rows = db.scalars(select(DiscoveredOnion).where(*conditions).order_by(DiscoveredOnion.first_seen_at.desc(), DiscoveredOnion.id.desc()).offset(offset).limit(limit)).all()
     return {"total": total, "limit": limit, "offset": offset, "items": [DiscoveryOut.model_validate(r) for r in rows]}

@@ -32,6 +32,9 @@ class SourceObservation(Base):
     description: Mapped[str] = mapped_column(String(500), nullable=False, default="", server_default="")
     text_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     text_length: Mapped[int] = mapped_column(Integer, nullable=False)
+    change_status: Mapped[str] = mapped_column(String(20), nullable=False, default="UNKNOWN", server_default="UNKNOWN")
+    relevance_score: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    keyword_hits: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     discovered_links: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     created_at: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -45,5 +48,8 @@ class DiscoveredOnion(Base):
     source_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("onion_sources.id"), nullable=False)
     target_url: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="PENDING", server_default="PENDING")
+    evidence_kind: Mapped[str] = mapped_column(String(16), nullable=False, default="LINK", server_default="LINK")
+    review_reason: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    reviewed_at: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
     first_seen_at: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     last_seen_at: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

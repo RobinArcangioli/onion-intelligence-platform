@@ -85,3 +85,20 @@ La dette `StarletteDeprecationWarning` reste non bloquante ; les tests ne consti
 Commande exécutée : `cd backend && PYTHONPATH=. pytest -q -p no:cacheprovider`.
 
 **Résultat observé : 99 passed** sous Python 3.13.5, sans réseau. Les tests de transport sont simulés par doubles HTTPX ; les migrations ont été exécutées sur SQLite. La passerelle Tor et les migrations PostgreSQL réelles restent à vérifier sur le poste opérateur. Voir `docs/08-lot2-collecte-tor.md`.
+
+## Lot 3 — Validation locale du paquet v0.4.0 (23 octobre 2026)
+
+**Exécuté dans l'environnement de génération** (Python 3.13.5 ; aucun accès réseau Tor) :
+
+```text
+cd backend && python -m pytest -q -p no:cacheprovider
+113 passed
+```
+
+- Migration de `0003_tor_collection` vers `0004_intelligence` sur base SQLite pré-peuplée, conservation des observations et des candidats existants : réussi.
+- `alembic upgrade head` puis `alembic check` SQLite : aucune divergence (`No new upgrade operations detected`).
+- `alembic upgrade head --sql` sur dialecte PostgreSQL (génération SQL seulement) : code de sortie 0.
+- Vérification syntaxique YAML de Compose et absence de port hôte sur `tor` / `collector` : réussies.
+- Contrôles fonctionnels hors réseau : watchlists, règles, déduplication Onion v3, filtrage de texte, scores, refus des actions non autorisées, revue sans création de source, limitation des découvertes, empreintes et suivi de changements.
+
+**Non exécuté dans cet environnement :** construction Docker, migration sur PostgreSQL réel, collecte Tor réelle et vérification de confinement réseau sortant du lot 3. Ces essais doivent être faits sur le poste opérateur. L'avertissement Starlette historique est non bloquant mais reste à traiter.
