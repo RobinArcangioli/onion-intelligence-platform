@@ -104,3 +104,14 @@ Index composite `(entity_type, entity_id)`. L'auteur est pour l'instant `api_key
 - Erreurs : uniquement contexte diagnostique neutralisé, pas de secrets.
 - Rapports : versionnés, provenance explicite et politique de suppression.
 - Audit : append-only, accès restreint, durée à déterminer; aucune clé API enregistrée.
+
+
+## Extension implantée au lot 1 (migration 0002)
+
+- `onion_sources.is_active` BOOLEAN NOT NULL DEFAULT true : état administratif indépendant de l'approbation.
+- `onion_sources.priority` INTEGER NOT NULL DEFAULT 3, validé de 1 à 5 dans l'API.
+- `onion_sources.deleted_at` TIMESTAMPTZ NULL : suppression logique ; permet l'historique et la restauration.
+- Index `(is_active, deleted_at)` pour les sélections actives.
+- `audit_logs.details` TEXT NOT NULL DEFAULT '{}' : JSON sérialisé pour les motifs et noms de champs modifiés, pas pour des contenus collectés.
+
+Les sources antérieures à la migration conservent leur statut d'autorisation. Une source supprimée et restaurée revient **non approuvée** et **désactivée**, avec `collection_enabled=false`.

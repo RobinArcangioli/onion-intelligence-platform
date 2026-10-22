@@ -6,7 +6,7 @@ from alembic import context
 from sqlalchemy import create_engine, pool
 
 from app.db.base import Base
-from app.models import AuditLog, OnionSource  # noqa: F401 (enregistrement ORM)
+from app import models  # noqa: F401 (enregistrement ORM)
 
 config = context.config
 if config.config_file_name:

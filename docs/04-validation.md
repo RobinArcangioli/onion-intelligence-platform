@@ -67,3 +67,21 @@ Attendu lors des prochaines vérifications : base saine, migrations à jour, tro
 - La migration Alembic est testée contre SQLite; certaines spécificités PostgreSQL demandent un test d'intégration réel.
 - Le code Docker a été exécuté sur le poste de l’opérateur, mais pas dans l’environnement de génération de cette archive.
 - Le registre ne teste pas la disponibilité d'un service Onion.
+
+
+## Lot 1 — Tests exécutés lors de la génération
+
+**Commande :** `cd backend && python -m pytest -q -p no:cacheprovider`
+
+**Résultat effectif :** `78 passed` sur Python 3.13. Comprend 20 tests de régression historiques, les tests de filtres CRUD, autorisations et audit, import/export et upgrade Alembic d'une base lot 0 peuplée.
+
+**Non exécuté ici :** Docker Compose et migration sur PostgreSQL 17 réel (Docker indisponible dans cet environnement). Le poste opérateur doit confirmer `docker compose --profile test run --build --rm tests`, `alembic current` et `/api/ready` après redéploiement.
+
+La dette `StarletteDeprecationWarning` reste non bloquante ; les tests ne constituent pas une validation de sécurité exhaustive.
+
+
+## Lot 2 — Validation de génération du paquet
+
+Commande exécutée : `cd backend && PYTHONPATH=. pytest -q -p no:cacheprovider`.
+
+**Résultat observé : 99 passed** sous Python 3.13.5, sans réseau. Les tests de transport sont simulés par doubles HTTPX ; les migrations ont été exécutées sur SQLite. La passerelle Tor et les migrations PostgreSQL réelles restent à vérifier sur le poste opérateur. Voir `docs/08-lot2-collecte-tor.md`.

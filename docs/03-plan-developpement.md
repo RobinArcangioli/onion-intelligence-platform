@@ -11,13 +11,15 @@ Le mot « validé » exige des tests réellement exécutés, pas seulement un co
 - **Tests :** endpoints vivant/prêt, autorisation par clé, validation v3, insert/list/doublon/audit, migration SQLite, vérification Docker manuelle.
 - **Acceptation :** `GET /api/ready` 200 avec PostgreSQL Docker, création SQL et audit, aucun fetch réseau; résultats consignés.
 
-## Lot 1 — Gouvernance des sources et RBAC
+## Lot 1 — Gouvernance des sources et RBAC (registre livré ; RBAC restant)
 
 - **Objectif :** éditeur de sources, désactivation, import/export, rôles utilisateurs, audit nominatif, autorisations revocables.
 - **Composants :** services et dépôts sources, authentification + rôles, API.
 - **Fichiers envisagés :** `backend/app/models/user.py`, `roles.py`, `backend/app/api/auth.py`, `backend/app/api/source_management.py`, nouvelles migrations.
 - **Dépendances :** lot 0 et politique de gestion des identités.
-- **Tests :** comptes isolés, refus 401/403, source désactivée, suppression logique, audit nominatif.
+- **Implémenté en 0.2.0 :** gestion CRUD, suppression logique, décisions d'autorisation, audit non nominatif, import JSON et export CSV, tests SQLite.
+- **Restant :** comptes séparés, RBAC, audit nominatif, politique de révocation des sessions/clefs.
+- **Tests :** 78 tests locaux réussis (API, validation, filtres, migration SQLite); tests identités 401/403 et PostgreSQL réels restant.
 - **Acceptation :** aucune opération administrative sensible sans identité autorisée; décisions traçables.
 
 ## Lot 2 — Connectivité Tor sous garde-fous
@@ -68,3 +70,11 @@ Le mot « validé » exige des tests réellement exécutés, pas seulement un co
 ## Gouvernance des livraisons
 
 Chaque lot doit mettre à jour `docs/04-validation.md` et `docs/05-etat-du-projet.md` avec les fichiers, tests réellement exécutés, commandes, limites et prochaine étape. Tout changement de schéma nécessite une migration, des tests de compatibilité et une procédure de rollback documentée.
+
+
+## Avancement au 22/10/2026
+
+- Lot 0 : validé sur le poste opérateur (20 tests Docker).
+- Lot 1 : déclaré validé par l'opérateur.
+- Lot 2 : collecteur Tor manuel, tests locaux réussis ; **à valider sur le poste opérateur**. Détails : `docs/08-lot2-collecte-tor.md`.
+- Prochaines phases : navigation interne autorisée avec quotas, politique de rétention, classification/alertes, dashboard.

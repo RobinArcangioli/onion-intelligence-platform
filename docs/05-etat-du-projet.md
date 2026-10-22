@@ -70,3 +70,32 @@
 **Dette technique conservée :** avertissement `StarletteDeprecationWarning` relatif au client de test HTTPX ; aucune vérification d'accès Tor ; pas encore de test d'intégration automatisé contre PostgreSQL réel.
 
 La documentation de lot 0 peut être enregistrée dans Git. Le tag prévu est `v0.1.0-lot0`.
+
+
+## Livraison 0.2.0 — Lot 1 : registre et cycle de vie des sources
+
+**État :** code réalisé, 78 tests locaux réussis, déploiement PostgreSQL/Docker lot 1 à vérifier par l'opérateur. Le jalon `v0.1.0-lot0` n'est pas modifié.
+
+- Sources : GET individuel, PATCH sur métadonnées, filtrage et pagination ; actions séparées d'activation/désactivation, approbation/révocation, suppression logique et restauration.
+- Audit : ajout `details` aux événements ; historisation des actions sans conservation des secrets ou corps de pages.
+- Import atomique JSON (100 max), export CSV (500 max) avec protections formule tableur.
+- Modèle : `is_active`, `priority`, `deleted_at`; migration Alembic `0002_source_lifecycle`.
+- Sécurité : toutes les routes restent authentifiées par clé API; aucune action ne définit `collection_enabled=true` et aucune requête Tor n'est possible.
+- Tests : 78 passed (tests FastAPI/SQLite + upgrade base Lot 0).
+- À terminer : identités nominatives, rôles/RBAC et tests d'intégration PostgreSQL de la nouvelle migration.
+
+**Décisions nouvelles :** suppression réversible sans restauration d'autorisation ; autorisation toujours explicite ; aucun fetch automatique ; approbation ne vaut pas activation de collecte.
+
+
+## Livraison 0.3.0 — Lot 2 : collecte Tor contrôlée
+
+**État :** code réalisé, 103 tests locaux réussis, tests Tor et déploiement Docker de ce lot **non exécutés** dans l'environnement de génération.
+
+- Profil Compose `tor` séparé, services `tor` et `collector` désactivés par défaut.
+- Conteneur `collector` uniquement sur réseaux internes `private` et `tor_proxy`.
+- Collecte ponctuelle d'une racine Onion v3 autorisée via Tor SOCKS5, jamais de sortie réseau directe ni de suivi automatique des liens.
+- Limites strictes : 256 KiB, MIME texte, 1 GET, aucun redirect, contenu non conservé.
+- API d'autorisation d'une source (enable/disable) avec audit, lecture des observations/jobs/découvertes.
+- Migration `0003_tor_collection`, nouvelles tables `crawl_jobs`, `source_observations`, `discovered_onions`.
+- Tests locaux 103/103 : tests hérités et tests lot 2 avec collectes fictives.
+- À faire : validation Docker Tor réel/PostgreSQL, RBAC, quotas temporels, rétention, classification de contenu sensible avant extension des collectes.

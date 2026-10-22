@@ -76,10 +76,53 @@ services:
       - no-new-privileges:true
     network_mode: none
 
+
+  tor:
+    profiles: [tor]
+    build:
+      context: ./infrastructure/tor
+    networks: [tor_proxy, tor_egress]
+    volumes:
+      - tor_data:/var/lib/tor
+    init: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  collector:
+    profiles: [tor]
+    build:
+      context: ./backend
+      target: runtime
+    entrypoint: ["python", "-m", "app.collector.cli"]
+    environment:
+      OIP_DATABASE_URL: postgresql+psycopg://${OIP_DB_USER:?required}:${OIP_DB_PASSWORD:?required}@db:5432/${OIP_DB_NAME:?required}
+      OIP_TOR_COLLECTION_ENABLED: ${OIP_TOR_COLLECTION_ENABLED:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+      tor:
+        condition: service_started
+    networks: [private, tor_proxy]
+    read_only: true
+    tmpfs: [/tmp]
+    init: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+
+
+
 volumes:
   postgres_data:
+  tor_data:
 
 networks:
+  tor_proxy:
+    internal: true
+  tor_egress:
+    driver: bridge
   private:
     internal: true
   ingress:

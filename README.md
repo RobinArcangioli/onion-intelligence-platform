@@ -1,23 +1,52 @@
 # ONION INTELLIGENCE PLATFORM (OIP)
 
-**Version :** 0.1.0 — Lot 0, fondations locales.
+**Version :** 0.3.0 — Lot 2, collecte Tor ponctuelle et contrôlée.
 
-**Statut :** lot 0 validé sur le poste de développement (Docker Compose, API, PostgreSQL et tests pytest).
+**Statut :** lot 0 et lot 1 validés par l'opérateur ; lot 2 implémenté, **103 tests locaux réussis**. Démarrage Docker/Tor réel et migration PostgreSQL du lot 2 à vérifier sur le poste opérateur.
+
+## Accès rapide — Lot 2
+
+Ce lot ajoute Tor isolé (`tor`), un collecteur manuel (`collector`), une validation explicite par source, les tables `crawl_jobs`, `source_observations`, `discovered_onions` et des routes API de consultation. Aucun crawl automatique : les liens découverts restent en attente. Le contenu brut des pages n'est pas conservé.
+
+**Procédure complète et limites : [`docs/08-lot2-collecte-tor.md`](docs/08-lot2-collecte-tor.md).**
+
+```bash
+sudo docker compose --profile test run --build --rm tests
+sudo docker compose up --build -d
+sudo docker compose exec api alembic current  # 0003_tor_collection attendu
+# Après approbation manuelle et activation via /api/v1/sources/{uuid}/collection/enable :
+sudo docker compose --profile tor up --build -d tor
+sudo docker compose logs --tail=100 tor  # attendre « Bootstrapped 100% »
+sudo docker compose --profile tor run --rm --build -e OIP_TOR_COLLECTION_ENABLED=true collector SOURCE_UUID
+```
+
+**Important :** les commandes `collector` ne doivent cibler qu'un UUID de source accessible publiquement et explicitement autorisée. Aucun accès Tor réel n'a été effectué lors de la génération de ce paquet.
+
+---
+
+## Historique : documentation du lot 1
+
+
+**Version :** 0.2.0 — Lot 1, gestion contrôlée des sources.
+
+**Statut :** lot 0 validé sur le poste opérateur ; lot 1 implémenté et testé localement (78 tests). Redéploiement Docker lot 1 à vérifier sur le poste opérateur.
 
 **Langue de la documentation :** français.
 
-Plateforme de veille documentaire sur sources Onion publiques et explicitement autorisées. Cette livraison implémente le socle de gestion de sources, sans aucun accès Tor. Elle **ne** découvre, ne visite, ne télécharge et ne classe aucun site à ce stade.
+Plateforme de veille documentaire sur sources Onion publiques et explicitement autorisées. Cette livraison étend le registre des sources et sa gouvernance, sans aucun accès Tor. Elle **ne** découvre, ne visite, ne télécharge et ne classe aucun site à ce stade.
 
 ## Fonctionnalités présentes
 
 - FastAPI avec `GET /api/health` et `GET /api/ready`.
 - SQLAlchemy + Alembic : tables `onion_sources` et `audit_logs`.
-- API `GET/POST /api/v1/sources`, authentifiée par `X-API-Key`.
+- API du registre : GET/POST/PATCH/DELETE, approbation/révocation, activation/désactivation, restauration et historique, authentifiée par `X-API-Key`.
 - Ajout manuel exigeant `authorization_confirmed=true` et une note descriptive d'autorisation.
 - Validation syntaxique et checksum des racines `.onion` v3; aucun accès réseau.
-- Journal d'audit de création, réponse 409 sur doublon, pagination.
+- Journal d'audit des décisions, motifs obligatoires, réponse 409 sur doublon, filtres et pagination.
+- Import JSON atomique (100 sources maximum), export CSV (500 maximum) avec neutralisation des formules de tableur.
+- Migration Alembic `0002_source_lifecycle` compatible avec le lot 0 (test SQLite).
 - PostgreSQL 17 et API sur réseau Docker interne (aucun port direct publié), avec passerelle Nginx non privilégiée exposée uniquement sur `127.0.0.1:8000`.
-- Tests hors ligne utilisant SQLite en mémoire et migration SQLite temporaire; 20 tests validés dans le conteneur `tests`.
+- Tests hors ligne : 78 tests réussis localement, dont 20 tests hérités du lot 0. Les tests Docker du lot 1 restent à exécuter par l'opérateur.
 
 ## Arborescence exacte — fichiers présents
 
@@ -40,7 +69,8 @@ onion-intelligence-platform/
 │   ├── alembic/
 │   │   ├── env.py
 │   │   └── versions/
-│   │       └── 0001_bootstrap.py
+│   │       ├── 0001_bootstrap.py
+│       └── 0002_source_lifecycle.py
 │   ├── app/
 │   │   ├── __init__.py
 │   │   ├── main.py
@@ -70,7 +100,9 @@ onion-intelligence-platform/
 │       ├── conftest.py
 │       ├── test_api.py
 │       ├── test_migration.py
-│       └── test_validation.py
+│       ├── test_validation.py
+│       ├── test_migration_upgrade.py
+│       └── test_source_lifecycle.py
 └── docs/
     ├── bootstrap-postgresql-preview.sql
     ├── 00-cadrage.md
@@ -79,7 +111,8 @@ onion-intelligence-platform/
     ├── 03-plan-developpement.md
     ├── 04-validation.md
     ├── 05-etat-du-projet.md
-    └── 06-securite.md
+    ├── 06-securite.md
+    └── 07-lot1-gestion-sources.md
 ```
 
 **Pas encore créés (et volontairement absents) :** `frontend/`, `infrastructure/tor/`, `app/crawler/`, `app/discovery/`, `app/analyzers/`, `app/scoring/`, `app/alerts/`, `app/reports/`. Voir `docs/03-plan-developpement.md`.
@@ -160,7 +193,7 @@ python -m pip install -e '.[dev]'
 python -m pytest -q -p no:cacheprovider
 ```
 
-**Validation du 22 octobre 2026 sur le poste de développement :** `20 passed, 1 warning in 1.15s` via Docker Compose. Les routes `/api/health` et `/api/ready` renvoient `200` via Nginx, et PostgreSQL est `healthy`. Le test de migration automatisé valide SQLite; les migrations PostgreSQL ont démarré sans erreur dans les journaux du conteneur API. Voir `docs/04-validation.md`.
+**Validation du lot 0 sur le poste de développement :** `20 passed, 1 warning in 1.15s` via Docker Compose. **Lot 1 : 78 tests passés localement ; exécution Docker sur le poste opérateur à faire.** Les routes `/api/health` et `/api/ready` renvoient `200` via Nginx, et PostgreSQL est `healthy`. Le test de migration automatisé valide SQLite; les migrations PostgreSQL ont démarré sans erreur dans les journaux du conteneur API. Voir `docs/04-validation.md`.
 
 ## Arrêt et conservation des données
 
@@ -174,7 +207,7 @@ La commande ci-dessus conserve le volume PostgreSQL. **Attention :** `docker com
 
 - **Local uniquement** : clé API partagée (pas encore de RBAC), docs OpenAPI non protégées, aucun reverse proxy TLS.
 - **Aucun réseau Tor** : l'architecture Tor et les règles de sortie réseau doivent être développées et auditées avant toute collecte.
-- Les seules données autorisées en entrée sont l'URL v3, un nom, une description et une note d'autorisation.
+- Les données du registre sont limitées aux métadonnées administratives : URL v3, nom, description, catégorie, priorité et justificatifs de décision.
 - Pas d'écriture de contenu collecté, pas de JS, pas d'archives, pas de médias ni de mots de passe.
 - La protection Docker par réseau privé et utilisateur non privilégié ne vaut pas garantie de confinement contre toutes les menaces.
 - `pyproject.toml` borne les versions majeures mais n'est pas un lockfile reproductible octet par octet; verrouiller les dépendances et les digests d'images avant déploiement de production.
@@ -188,8 +221,9 @@ La commande ci-dessus conserve le volume PostgreSQL. **Attention :** `docker com
 5. [`docs/04-validation.md`](docs/04-validation.md) — tests effectivement exécutés et tests restants.
 6. [`docs/05-etat-du-projet.md`](docs/05-etat-du-projet.md) — état versionnable et décisions techniques.
 7. [`docs/06-securite.md`](docs/06-securite.md) — menaces, barrières et garde-fous.
+8. [`docs/07-lot1-gestion-sources.md`](docs/07-lot1-gestion-sources.md) — routes, déploiement et migration du lot 1.
 
-## Initialiser Git
+## Git — lot 0 (historique de référence)
 
 ```bash
 git init -b main  # uniquement si le dépôt n'existe pas déjà
@@ -220,3 +254,21 @@ curl --fail-with-body http://127.0.0.1:8000/api/ready
 ```
 
 Cette architecture ne garantit pas l'absence de toutes les sorties réseau de `gateway`, connecté à `ingress`; limiter ses destinations sortantes via le pare-feu hôte pour une politique stricte. Le composant collecteur Tor n'existe pas encore et ne partage pas `ingress`. Le proxy ne rend pas l'API utilisable sur un réseau public : la liaison est strictement locale à `127.0.0.1` dans les conditions habituelles de Docker récent.
+
+
+## Lot 1 — Mise à niveau du dépôt existant
+
+L'archive contient les fichiers versionnés de la nouvelle livraison, mais **ni `.git`, ni `.env`**. Extraire sur le dépôt du lot 0 depuis une branche de fonctionnalité ; ne pas supprimer les volumes de base de données.
+
+```bash
+git switch -c feature/lot1-source-management
+unzip -o /CHEMIN/OIP_lot1_sources_0.2.0.zip -d .
+docker compose --profile test run --build --rm tests
+docker compose up --build -d
+curl -fsS http://127.0.0.1:8000/api/ready
+git add -A
+git diff --cached --check
+git commit -m "feat: add source lifecycle and audit (lot 1)"
+```
+
+Pour la liste exhaustive des routes, les exemples d'import et la stratégie de migration : [`docs/07-lot1-gestion-sources.md`](docs/07-lot1-gestion-sources.md).

@@ -1,6 +1,7 @@
+"""Audit append-only : métadonnées non sensibles, pas de corps de page ni secrets."""
 import uuid
 
-from sqlalchemy import DateTime, Index, String, Uuid, func
+from sqlalchemy import DateTime, Index, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -15,4 +16,5 @@ class AuditLog(Base):
     action: Mapped[str] = mapped_column(String(80), nullable=False)
     entity_type: Mapped[str] = mapped_column(String(60), nullable=False)
     entity_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    details: Mapped[str] = mapped_column(Text, default="{}", server_default="{}", nullable=False)
     created_at: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
