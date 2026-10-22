@@ -1,6 +1,22 @@
 # ONION INTELLIGENCE PLATFORM (OIP)
 
-**Version :** 0.4.0 — Lot 3, analyse textuelle et découverte Onion contrôlées.
+**Version :** 0.5.0 — Lot 4, classification et CTI hors ligne.
+
+**État :** 135 tests locaux réussis ; migration 0005 vérifiée sur SQLite et SQL PostgreSQL généré hors ligne. Le déploiement Docker/PostgreSQL réel du lot 4 reste à valider chez l'opérateur. Aucune requête vers Tor n'a été exécutée pendant les tests.
+
+Le lot 4 propose des **catégories heuristiques** et des indices CTI non vérifiés, avec revue humaine. Les textes complets de pages ne sont pas conservés. Les découvertes ne sont toujours pas explorées automatiquement ; une suspicion sensible désactive les futures collectes de la source jusqu'à intervention humaine. Voir [le guide complet du lot 4](docs/10-lot4-cti-classification.md).
+
+```bash
+sudo docker compose config --quiet
+sudo docker compose --profile test run --build --rm tests
+sudo docker compose up --build -d
+sudo docker compose exec api alembic current  # 0005_cti_classification (head)
+curl -fsS http://127.0.0.1:8000/api/ready
+```
+
+---
+
+**Version historique :** 0.4.0 — Lot 3, analyse textuelle et découverte Onion contrôlées.
 
 **État :** lots précédents validés selon les contrôles communiqués par l'opérateur ; code lot 3 implémenté, **113 tests locaux réussis**. Migration PostgreSQL réelle / Docker du lot 3 à confirmer sur le poste opérateur. Aucun site Onion réel consulté pendant les tests livrés.
 

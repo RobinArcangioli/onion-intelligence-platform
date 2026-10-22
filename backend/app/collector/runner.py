@@ -10,8 +10,9 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.collector.extract import extract_html
 from app.analyzers.keywords import RuleSpec, analyze_text, MAX_RULES_PER_JOB
 from app.collector.transport import CollectError, fetch_onion_root
+from app.classifiers.rules import classify_document, RULESET_VERSION
 from app.models import (AuditLog, CrawlJob, DiscoveredOnion, OnionSource, SourceObservation,
-                        Watchlist, WatchlistRule, KeywordMatch)
+                        Watchlist, WatchlistRule, KeywordMatch, ClassificationResult, ThreatIndicator)
 from app.security.onion import canonical_onion_root
 
 
@@ -70,6 +71,7 @@ async def collect_one(source_id: uuid.UUID, factory: sessionmaker[Session], *, f
         result = await fetcher(url)
         extracted = extract_html(result.body, result.encoding, content_type=result.content_type, page_url=url)
         analysis = analyze_text(extracted.transient_text, rules)
+        classification = classify_document(extracted.transient_text, title=extracted.title, description=extracted.description)
     except CollectError as exc:
         error_code = exc.code
     except Exception:
@@ -108,19 +110,33 @@ async def collect_one(source_id: uuid.UUID, factory: sessionmaker[Session], *, f
         observation = SourceObservation(
             job_id=job_id, source_id=source_id, http_status=result.status,
             content_type=result.content_type, response_bytes=len(result.body),
-            title=extracted.title, description=extracted.description,
+            title="" if classification.quarantine else extracted.title,
+            description="" if classification.quarantine else extracted.description,
             text_sha256=extracted.text_sha256, text_length=extracted.text_length,
-            discovered_links=len(extracted.onion_roots),
+            discovered_links=0 if classification.quarantine else len(extracted.onion_roots),
             change_status=change_status,
-            relevance_score=analysis.score,
-            keyword_hits=sum(hit.occurrences for hit in analysis.hits),
+            relevance_score=0 if classification.quarantine else analysis.score,
+            keyword_hits=0 if classification.quarantine else sum(hit.occurrences for hit in analysis.hits),
         )
         session.add(observation)
         session.flush()
-        for hit in analysis.hits:
+        for hit in (() if classification.quarantine else analysis.hits):
             session.add(KeywordMatch(observation_id=observation.id, rule_id=hit.rule_id,
                                      occurrences=hit.occurrences, contribution=hit.contribution))
-        for candidate in extracted.candidates:
+        for suggestion in classification.categories:
+            session.add(ClassificationResult(
+                observation_id=observation.id, source_id=source_id, category=suggestion.category,
+                confidence=suggestion.confidence, evidence_codes=list(suggestion.evidence_codes),
+                ruleset_version=RULESET_VERSION, review_status=suggestion.review_status,
+            ))
+        for indicator in classification.indicators:
+            session.add(ThreatIndicator(
+                observation_id=observation.id, source_id=source_id, indicator_type=indicator.indicator_type,
+                public_reference=indicator.public_reference, verification_status=indicator.verification_status,
+                confidence=indicator.confidence, evidence_codes=list(indicator.evidence_codes),
+                ruleset_version=RULESET_VERSION,
+            ))
+        for candidate in (() if classification.quarantine else extracted.candidates):
             target = candidate.root
             existing = session.scalar(select(DiscoveredOnion).where(
                 DiscoveredOnion.source_id == source_id,
@@ -133,6 +149,9 @@ async def collect_one(source_id: uuid.UUID, factory: sessionmaker[Session], *, f
             else:
                 session.add(DiscoveredOnion(source_id=source_id, target_url=target,
                                             status="PENDING", evidence_kind=candidate.evidence_kind))
+        if classification.quarantine:
+            source.collection_enabled = False
+            _audit(session, source_id, "collection.sensitive_quarantine", job_id)
         source.availability_status = "AVAILABLE"
         job.status = "COMPLETED"
         job.finished_at = _utcnow()

@@ -115,3 +115,18 @@ La documentation de lot 0 peut être enregistrée dans Git. Le tag prévu est `v
 **Point de sécurité :** `APPROVED` sur une découverte ne transforme jamais la cible en source approuvée ni active. L'ancien module de gestion des sources reste le seul canal d'approbation.
 
 Voir `docs/09-lot3-analyse-decouverte.md`.
+
+
+## Livraison 0.5.0 — Lot 4 : classification et CTI
+
+**État :** code implémenté, 135 tests locaux réussis sans Tor, validation SQLite/Alembic et SQL PostgreSQL généré ; Docker/PostgreSQL réel de ce lot à confirmer par l'opérateur.
+
+- Moteur local heuristique versionné, multilabel, scores de confiance distincts de la pertinence des watchlists ; aucune attribution automatique d'incident.
+- Résultats `classification_results` et `threat_indicators` à provenance explicite, indices de revendications `OBSERVED_CLAIM`, références CVE `OBSERVED_REFERENCE`.
+- Cooccurrences indicateurs/watchlists calculées par observation sans divulgation d'extraits ni de règles.
+- Revue humaine `ACCEPTED`/`REJECTED` de catégories avec audit minimal ; aucune réactivation de source liée à une revue.
+- Signal sensible de suspicion d'exploitation de mineurs : conservation minimale, aucune découverte/correspondance et désactivation des collectes suivantes ; revue humaine requise. Les faux positifs sont possibles.
+- Migration `0005_cti_classification` ajoutant deux tables. Observations historiques conservées sans réanalyse rétroactive.
+- Limites : règles lexicales non exhaustives ; pas de vérification d'identifiants CVE ni de faits, pas de RBAC, pas d'alerte, pas de Docker local ici.
+
+Voir `docs/10-lot4-cti-classification.md`.

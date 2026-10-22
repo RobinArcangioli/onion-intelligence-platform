@@ -1,85 +1,40 @@
-# 03 — Plan de développement incrémental
+from fastapi import FastAPI
 
-Le mot « validé » exige des tests réellement exécutés, pas seulement un code écrit.
+from app.api.health import router as health_router
+from app.api.sources import router as sources_router
+from app.api.collection import router as collection_router
+from app.api.intelligence import router as intelligence_router
+from app.api.cti import router as cti_router
 
-## Lot 0 — Fondations locales (livré dans cette archive)
-
-- **Objectif :** dépôt, API, base, migrations, contrôle d'accès provisoire, tests hors ligne.
-- **Composants :** Compose, PostgreSQL, FastAPI, SQLAlchemy, Alembic, registre manuel.
-- **Fichiers :** `compose.yaml`, `backend/Dockerfile`, `backend/app/{main.py,api/*,db/*,models/*,schemas/*,security/*}`, `backend/alembic/*`, `backend/tests/*`.
-- **Dépendances :** Python 3.12, Docker Compose pour validation PostgreSQL, aucune dépendance Tor.
-- **Tests :** endpoints vivant/prêt, autorisation par clé, validation v3, insert/list/doublon/audit, migration SQLite, vérification Docker manuelle.
-- **Acceptation :** `GET /api/ready` 200 avec PostgreSQL Docker, création SQL et audit, aucun fetch réseau; résultats consignés.
-
-## Lot 1 — Gouvernance des sources et RBAC (registre livré ; RBAC restant)
-
-- **Objectif :** éditeur de sources, désactivation, import/export, rôles utilisateurs, audit nominatif, autorisations revocables.
-- **Composants :** services et dépôts sources, authentification + rôles, API.
-- **Fichiers envisagés :** `backend/app/models/user.py`, `roles.py`, `backend/app/api/auth.py`, `backend/app/api/source_management.py`, nouvelles migrations.
-- **Dépendances :** lot 0 et politique de gestion des identités.
-- **Implémenté en 0.2.0 :** gestion CRUD, suppression logique, décisions d'autorisation, audit non nominatif, import JSON et export CSV, tests SQLite.
-- **Restant :** comptes séparés, RBAC, audit nominatif, politique de révocation des sessions/clefs.
-- **Tests :** 78 tests locaux réussis (API, validation, filtres, migration SQLite); tests identités 401/403 et PostgreSQL réels restant.
-- **Acceptation :** aucune opération administrative sensible sans identité autorisée; décisions traçables.
-
-## Lot 2 — Connectivité Tor sous garde-fous
-
-- **Objectif :** vérification réseau d'une source approuvée, Tor uniquement, sans récupération sensible.
-- **Composants :** gateway Tor, conteneur crawler isolé, liste d'autorisation, garde egress.
-- **Fichiers envisagés :** `infrastructure/tor/torrc`, `backend/app/crawler/transport.py`, `backend/app/security/scope_policy.py`, Compose réseau isolé.
-- **Dépendances :** gouvernance / politique d'autorisation, firewall Docker/hôte étudié.
-- **Tests :** proxy absent => échec fermé; aucune requête HTTP directe; résolution DNS distante, timeout, URL hors scope, redirect bloquée, faux serveur local.
-- **Acceptation :** aucune sortie réseau autre que Tor démontrée par tests et inspection réseau; environnement Tor réel vérifié à part.
-
-## Lot 3 — Collecte et extraction HTML
-
-- **Objectif :** collecter des pages textuelles autorisées avec quotas stricts et historisation.
-- **Composants :** transport HTTP, parseur HTML, jobs, observations, empreintes.
-- **Fichiers envisagés :** `backend/app/crawler/collector.py`, `backend/app/extractors/html.py`, `backend/app/workers/scheduler.py`, migrations pages/jobs/observations.
-- **Dépendances :** lot 2 et règles de gestion des contenus sensibles.
-- **Tests :** fixtures HTML sans réseau, limites bytes/durée/page, MIME refusé, scripts ignorés, déduplication, annulation et reprise.
-- **Acceptation :** seule une source explicitement autorisée peut être consultée; données textuelles bornées et traçables.
-
-## Lot 4 — Découverte, pertinence et CTI
-
-- **Objectif :** candidats `.onion` non visités, validation humaine, watchlists, scoring explicable, classification prudente.
-- **Composants :** discovery, scoring, classification, threat indicators.
-- **Fichiers envisagés :** `backend/app/discovery/*`, `backend/app/scoring/*`, `backend/app/analyzers/*`, `backend/app/classifiers/*`, migrations correspondantes.
-- **Dépendances :** lot 3, taxonomie et règles versionnées.
-- **Tests :** URLs v3 extraites, aucun auto-follow, déduplication, provenance, scores déterministes, confiance indépendante, catégories sensibles en quarantaine.
-- **Acceptation :** toutes les découvertes restent PENDING tant que non revues; scores compréhensibles et auditables.
-
-## Lot 5 — Alertes et rapports
-
-- **Objectif :** alertes non dupliquées, suivi des statuts, exports JSON/CSV vérifiables.
-- **Composants :** alert engine, reports, filtres API.
-- **Fichiers envisagés :** `backend/app/alerts/*`, `backend/app/reports/*`, `backend/app/api/alerts.py`, `reports.py`, migrations.
-- **Dépendances :** lot 4.
-- **Tests :** même événement => une alerte; filtrage dates/entités; export sans secrets; références et limites explicites.
-- **Acceptation :** une observation mène à une alerte et à un rapport traçables sans convertir une allégation en fait avéré.
-
-## Lot 6 — Dashboard et exploitation
-
-- **Objectif :** UI complète avec vue générale, sources, découvertes, recherche, watchlists, alertes, rapports.
-- **Composants :** React + TypeScript, composants visuels, API versionnée, scripts de déploiement.
-- **Fichiers envisagés :** `frontend/package.json`, `frontend/src/*`, `frontend/Dockerfile`, guides.
-- **Dépendances :** APIs stabilisées des lots 1–5.
-- **Tests :** parcours utilisateur, auth, erreurs réseau, ergonomie responsive, pagination, contrôles de sécurité UI.
-- **Acceptation :** tous les écrans affichent de vraies données, aucun tableau simulé ni donnée inventée.
-
-## Gouvernance des livraisons
-
-Chaque lot doit mettre à jour `docs/04-validation.md` et `docs/05-etat-du-projet.md` avec les fichiers, tests réellement exécutés, commandes, limites et prochaine étape. Tout changement de schéma nécessite une migration, des tests de compatibilité et une procédure de rollback documentée.
+app = FastAPI(
+    title="Onion Intelligence Platform API",
+    description="Collecte Tor contrôlée et manuelle, classification hors ligne et signaux CTI non vérifiés.",
+    version="0.5.0",
+)
+app.include_router(health_router)
+app.include_router(sources_router)
+app.include_router(collection_router)
+app.include_router(intelligence_router)
+app.include_router(cti_router)
 
 
-## Avancement au 22/10/2026
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
-- Lot 0 : validé sur le poste opérateur (20 tests Docker).
-- Lot 1 : déclaré validé par l'opérateur.
-- Lot 2 : collecteur Tor manuel, tests locaux réussis ; **à valider sur le poste opérateur**. Détails : `docs/08-lot2-collecte-tor.md`.
-- Prochaines phases : navigation interne autorisée avec quotas, politique de rétention, classification/alertes, dashboard.
+
+## Extension lot 4 (migration `0005_cti_classification`)
+
+- `classification_results` : UUID de l'observation et de la source ; catégorie suggérée ; confiance heuristique ; liste JSON de **codes** de règles ; version du moteur ; statut de revue (`AUTO_SUGGESTED`, `REVIEW_REQUIRED`, `ACCEPTED`, `REJECTED`) ; métadonnées de revue. Contrainte unique `(observation_id, category)`.
+- `threat_indicators` : UUID de l'observation et de la source ; type de signal ; `public_reference` (CVE uniquement) ; `verification_status` (`OBSERVED_REFERENCE` ou `OBSERVED_CLAIM`) ; confiance heuristique ; codes d'évidence et version. Contrainte unique `(observation_id, indicator_type, public_reference)`.
+- `correlations` : **vue calculée à la demande**, aucune table supplémentaire. Jointure non intrusive sur `observation_id` entre `threat_indicators` et `keyword_matches` puis `watchlist_rules`; aucun extrait ni secret exposé.
+- Les observations lot 3 existantes sont conservées et ne sont pas rétro-classifiées. Les nouveaux champs ne sont pas ajoutés aux anciennes tables.
+- Les classifications proposées et les revendications ne sont **pas** une preuve, une confirmation ou une attribution.
 
 
-## Avancement au 23/10/2026 — Lot 3
+## Avancement lot 4 — v0.5.0
 
-La livraison 0.4.0 inclut l'extraction améliorée, le suivi des empreintes, la découverte des liens/textes et la première analyse déterministe par watchlist. Ces fonctions chevauchent volontairement une partie du lot 4 envisagé initialement. La classification prudente, les alertes et le tableau de bord restent à développer. Voir `docs/09-lot3-analyse-decouverte.md`.
+Le socle de classification déterministe, les signaux CTI (CVE publics et revendications), le filtrage API, la revue humaine et la cooccurrence avec les watchlists sont implémentés ; 135 tests locaux réussis. Aucun enrichissement externe automatique et aucune collecte hors périmètre n'ont été ajoutés. La validation sur PostgreSQL réel, la calibration des règles, les alertes et les rapports restent à effectuer. Voir `docs/10-lot4-cti-classification.md`.

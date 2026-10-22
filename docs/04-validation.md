@@ -102,3 +102,14 @@ cd backend && python -m pytest -q -p no:cacheprovider
 - Contrôles fonctionnels hors réseau : watchlists, règles, déduplication Onion v3, filtrage de texte, scores, refus des actions non autorisées, revue sans création de source, limitation des découvertes, empreintes et suivi de changements.
 
 **Non exécuté dans cet environnement :** construction Docker, migration sur PostgreSQL réel, collecte Tor réelle et vérification de confinement réseau sortant du lot 3. Ces essais doivent être faits sur le poste opérateur. L'avertissement Starlette historique est non bloquant mais reste à traiter.
+
+
+## Lot 4 — Validation réellement effectuée dans l'environnement de génération
+
+- `cd backend && python3 -m pytest -q -p no:cacheprovider` : **135 tests réussis**, dont les régressions des lots 0 à 3 et les nouveaux scénarios de classification, CTI, revues humaines, quarantaine, cooccurrences et migration de base lot 3 peuplée.
+- `python3 -m compileall -q backend/app backend/alembic` : code compilable.
+- `alembic upgrade head` puis `alembic check` sur SQLite temporaire : **code retour 0**, aucune dérive détectée.
+- `alembic upgrade head --sql` avec URL fictive PostgreSQL : **code retour 0**, création de `classification_results`, `threat_indicators` et révision `0005_cti_classification` présentes.
+- PyYAML a chargé `compose.yaml` : aucun port publié pour Tor ni collector dans la configuration.
+- **Aucun conteneur Docker, serveur PostgreSQL réel ou service Onion n'a été démarré dans cet environnement.** La validation du lot 4 sur la machine opérateur est indispensable avant son tag Git.
+- Les tests démontrent des comportements déterministes sur corpus fictifs, **pas** la pertinence CTI en situation réelle ni une isolation réseau prouvée.
