@@ -146,3 +146,13 @@ Docker/PostgreSQL du lot 5 attendue sur le poste opérateur.
 - Limitations : RBAC et rétention automatique non développés.
 
 Voir `docs/11-lot5-alertes-rapports.md`.
+
+## Lot 6 — interface React + TypeScript (v0.7.0)
+
+- Statut : **livraison prête ; validation Docker et navigateur à effectuer sur le poste opérateur**.
+- Espace local mono-opérateur et clé API en mémoire uniquement.
+- Sept vues connectées aux API existantes : vue générale, sources, découvertes, CTI, watchlists, alertes et rapports.
+- Gateway Nginx reconstruit depuis `frontend/Dockerfile` ; port localhost `127.0.0.1:8000`, PostgreSQL/API et Tor non exposés sur l'hôte.
+- Pas de migration de base ; révision attendue `0006_alerts_reports`.
+- Tests backend : 157 réussis ; tests utilitaires frontend : 9 réussis ; build npm/Vite non exécuté dans l'environnement de préparation.
+- Étape suivante : contrôle du build React dans Docker, test de connexion et des écrans, commit puis tag Git `v0.7.0-lot6`.

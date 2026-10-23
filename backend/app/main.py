@@ -10,7 +10,7 @@ from app.api.reporting import router as reporting_router
 app = FastAPI(
     title="Onion Intelligence Platform API",
     description="Collecte Tor contrôlée et manuelle, classification hors ligne et signaux CTI non vérifiés.",
-    version="0.6.0",
+    version="0.7.0",
 )
 app.include_router(health_router)
 app.include_router(sources_router)

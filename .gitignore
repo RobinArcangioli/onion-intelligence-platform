@@ -32,3 +32,8 @@ build/
 /resolving
 /transferring
 /unpacking
+
+# Frontend (npm/Vite)
+node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo

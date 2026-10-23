@@ -44,14 +44,14 @@ services:
     restart: unless-stopped
 
   gateway:
-    image: nginxinc/nginx-unprivileged:stable-alpine
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     depends_on:
       api:
         condition: service_healthy
     ports:
       - "127.0.0.1:8000:8080"
-    volumes:
-      - ./infrastructure/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     networks: [ingress, private]
     init: true
     read_only: true

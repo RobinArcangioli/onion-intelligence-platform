@@ -331,3 +331,15 @@ Pour la liste exhaustive des routes, les exemples d'import et la stratégie de m
 - **Nouvelles API** : `/api/v1/alerts`, `/api/v1/reports` (authentifiées).
 - **Guide de déploiement, endpoints et limites** :
   [`docs/11-lot5-alertes-rapports.md`](docs/11-lot5-alertes-rapports.md).
+
+---
+
+## Lot 6 — Dashboard web local (v0.7.0)
+
+**Nouvelle interface :** `http://127.0.0.1:8000/` après `sudo docker compose up --build -d`.
+
+L'ancien port API reste identique : Nginx sert maintenant une application React + TypeScript (construite avec Vite) sur `/` et relaie `/api/` à FastAPI. Les routes `/api/health`, `/api/ready`, `/docs` restent accessibles. L'API continue à utiliser le même secret `OIP_API_KEY`.
+
+À la première ouverture, renseigner la clé API dans l'écran de connexion ; elle demeure **uniquement en mémoire**, sans stockage navigateur, et est effacée à la déconnexion ou au rafraîchissement. Les vues sont connectées à PostgreSQL via FastAPI, sans données factices. Les mutations administratives utilisent des justifications courtes en anglais (`Manual check`, `Manual approval`). Le dashboard n'exécute aucune collecte réseau Tor.
+
+Voir [docs/12-lot6-dashboard-web.md](docs/12-lot6-dashboard-web.md) pour les écrans, le protocole de mise à niveau, les limites et tests.

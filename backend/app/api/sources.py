@@ -113,7 +113,7 @@ def create_source(payload: SourceCreate, db: Session = Depends(get_session)) -> 
     try:
         db.add(source)
         db.flush()
-        _audit(db, source, "source.create", reason="Autorisation manuelle documentée")
+        _audit(db, source, "source.create", reason="Manual approval")
         return _save(db, source)
     except IntegrityError as exc:
         db.rollback()
@@ -170,7 +170,7 @@ def import_sources(payload: SourceImportRequest, db: Session = Depends(get_sessi
             )
             db.add(source)
             db.flush()
-            _audit(db, source, "source.import", reason="Import manuel avec autorisation explicite")
+            _audit(db, source, "source.import", reason="Manual import")
             created.append(source)
         db.commit()
     except IntegrityError as exc:
@@ -240,7 +240,7 @@ def approve_source(source_id: uuid.UUID, payload: SourceApproval, db: Session = 
     source.approved_for_collection = True
     source.collection_enabled = False
     source.authorization_note = payload.authorization_note
-    _audit(db, source, "source.approve", reason="Nouvelle autorisation documentée")
+    _audit(db, source, "source.approve", reason="Manual approval")
     return _save(db, source)
 
 
