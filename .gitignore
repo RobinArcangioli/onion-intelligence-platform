@@ -1,25 +1,71 @@
+# Local configuration and credentials — never commit
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.kdbx
+*.asc
+
+# Local database dumps, exports and sensitive observations
+/backups/
+*.dump
+*.sql.gz
+*.sqlite
+*.sqlite3
+*.db
+/exports/
+/observations/
+
+# Python generated artifacts
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
 .venv/
+venv/
 *.egg-info/
-dist/
+.coverage*
+htmlcov/
 build/
-.coverage
-*.db
-.DS_Store
 
-# Sauvegardes, archives et logs locaux (ne jamais committer les secrets).
-*.bak
+# Frontend and browser artifacts (keep frontend/package-lock.json tracked)
+**/node_modules/
+frontend/dist/
+*.tsbuildinfo
+frontend/test-results/
+frontend/playwright-report/
+frontend/.playwright/
+
+# Local IDE, notebooks, terminal logs, archives and OS artifacts
+.vscode/
+.idea/
+.ipynb_checkpoints/
+*.ipynb
 *.log
-/*.zip
-/OIP_correctif_reseau_2_fichiers/
+*.bak
+*.tmp
+*.swp
+*.swo
+*.zip
+*.tar
+*.tar.gz
+*.7z
+*.rar
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.mp4
+*.mkv
+.DS_Store
+Thumbs.db
+Pasted text*.txt
 
-# Fragments de sortie Docker accidentellement créés à la racine.
+# Historical accidental terminal fragments at repository root
 /=
 /CACHED
 /\[internal\]
@@ -32,16 +78,3 @@ build/
 /resolving
 /transferring
 /unpacking
-
-# Frontend (npm/Vite)
-node_modules/
-frontend/dist/
-frontend/*.tsbuildinfo
-
-# Local sensitive database backups
-/backups/
-
-# Playwright local artifacts: may contain captured metadata.
-/frontend/test-results/
-/frontend/playwright-report/
-/frontend/.playwright/

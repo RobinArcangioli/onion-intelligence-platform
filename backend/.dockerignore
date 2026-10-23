@@ -4,3 +4,16 @@ __pycache__
 *.egg-info
 *.db
 .env
+**/node_modules
+backups
+exports
+observations
+*.dump
+*.zip
+*.log
+*.pem
+*.key
+*.p12
+*.pfx
+*.bak
+*.tmp

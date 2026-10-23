@@ -1,18 +1,9 @@
-**Lot 4 (v0.5.0) :** voir `../docs/10-lot4-cti-classification.md` pour classification hors ligne, indicateurs CTI et revue humaine.
+# OIP backend (FastAPI)
 
-**Lot 3 (v0.4.0) :** voir `../docs/09-lot3-analyse-decouverte.md` pour watchlists, scores et découvertes.
+API Python de la plateforme **OIP v1.0.0-rc2**. Le module comprend les routes authentifiées, les modèles SQLAlchemy, les migrations Alembic et les composants du collecteur Tor.
 
-**Lot 2 (0.3.0) :** voir `../docs/08-lot2-collecte-tor.md` pour la collecte ponctuelle Tor et les nouvelles migrations.
+Ce README est utilisé par `backend/pyproject.toml` lors de la construction du paquet Python et par `backend/Dockerfile` ; **ne pas le supprimer**.
 
-# OIP API
-
-Module Python du MVP de la plateforme. Pour les instructions de démarrage, voir `../README.md`.
-
-
-## Lot 5 — alertes et rapports (v0.6.0)
-
-Deux nouvelles tables `alerts` et `reports`, migrations Alembic `0006_alerts_reports`.
-Routes protégées `GET/PATCH /api/v1/alerts`, `GET/POST /api/v1/reports`,
-`GET /api/v1/reports/{id}/export?format=json|csv`.
-Les rapports sont des snapshots metadata-only; aucune navigation Onion supplémentaire.
-Voir `../docs/11-lot5-alertes-rapports.md`.
+- [Démarrage et administration](../docs/installation-administration.md)
+- [API et tests](../docs/api-developpement.md)
+- [Architecture et sécurité](../docs/architecture-securite.md)
