@@ -33,12 +33,12 @@ function Login({onReady}: {onReady:(key:string,identity:Identity)=>void}) {
     <div className="brand brand-login"><span className="brand-mark"><Icon name="radar" size={23}/></span><span><strong>OIP<span className="accent">.</span></strong><small>ONION INTELLIGENCE PLATFORM</small></span></div>
     <div className="login-illustration"><div className="login-orbit orbit-one"/><div className="login-orbit orbit-two"/><span className="login-lock"><Icon name="lock" size={32}/></span></div>
     <p className="eyebrow">LOCAL SECURE ACCESS</p><h1>Bienvenue dans<br/><span className="accent">votre espace CTI.</span></h1>
-    <p className="login-desc">Utilisez votre jeton individuel OIP. La clé historique reste disponible temporairement pendant la migration.</p>
+    <p className="login-desc">Utilisez votre jeton individuel OIP. La clé partagée historique est désactivée par défaut.</p>
     <form onSubmit={connect}><label htmlFor="key">CLÉ API</label><input id="key" type="password" autoComplete="off" spellCheck={false} value={key} onChange={e=>setKey(e.target.value)} placeholder="Saisir la clé API OIP" minLength={32} required/>
       {error && <p className="form-error" role="alert">{error}</p>}
       <button className="btn btn-primary login-submit" disabled={busy||key.trim().length<32}>{busy?'Vérification…':'Accéder au dashboard'}<Icon name="arrow"/></button></form>
     <p className="login-foot"><Icon name="shield" size={14}/> Clé conservée en mémoire uniquement · aucune persistance navigateur</p>
-  </div><div className="login-bottom">OIP / OPERATOR CONSOLE <span>V0.9.0</span></div></main>;
+  </div><div className="login-bottom">OIP / OPERATOR CONSOLE <span>V1.0.0 RC2</span></div></main>;
 }
 
 export default function App() {
@@ -64,7 +64,7 @@ export default function App() {
       </nav>
       <div className="sidebar-bottom"><div className="secure-card"><Icon name="shield" size={22}/><strong>Périmètre contrôlé</strong><p>Accès local uniquement. Aucune exploration automatique.</p></div>
         <button className="nav-link logout-link" onClick={disconnect}><Icon name="logout"/> Déconnecter</button>
-        <div className="sidebar-version">OIP CONSOLE <span>v0.9.0 / LOCAL</span></div>
+        <div className="sidebar-version">OIP CONSOLE <span>v1.0.0-rc2 / LOCAL</span></div>
       </div>
     </aside>
     <div className="main-area">
@@ -74,7 +74,7 @@ export default function App() {
       </div>
       <div className="content" key={section}>
         {section==='overview'&&<Overview {...props} go={navigate}/>}
-        {section==='sources'&&<Sources {...props}/>}
+        {section==='sources'&&<Sources {...props} role={identity?.role ?? 'VIEWER'}/>}
         {section==='discoveries'&&<Discoveries {...props}/>}
         {section==='intelligence'&&<Threats {...props}/>}
         {section==='watchlists'&&<Watchlists {...props}/>}

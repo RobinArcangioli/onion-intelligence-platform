@@ -25,7 +25,7 @@ def test_from_lot6_preserves_data_and_adds_auth(tmp_path):
         VALUES (:s,'http://example.onion/','Existing source','Manual approval')'''), {'s': sid})
     _upgrade(url, 'head', root)
     with engine.connect() as conn:
-        assert conn.scalar(text('SELECT version_num FROM alembic_version')) == '0007_named_access'
+        assert conn.scalar(text('SELECT version_num FROM alembic_version')) == '0008_manual_queue'
         assert conn.scalar(text('SELECT name FROM onion_sources WHERE id=:s'), {'s': sid}) == 'Existing source'
         assert {'operators', 'operator_tokens', 'reports', 'audit_logs'}.issubset(
             set(inspect(engine).get_table_names()))

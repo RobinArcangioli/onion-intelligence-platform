@@ -1,13 +1,18 @@
 """Observations minimales : jamais de corps HTML, de médias ni de secrets."""
 import uuid
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, Uuid, func
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, Uuid, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 
 
 class CrawlJob(Base):
     __tablename__ = "crawl_jobs"
-    __table_args__ = (Index("ix_crawl_jobs_source_created", "source_id", "created_at"),)
+    __table_args__ = (
+        Index("ix_crawl_jobs_source_created", "source_id", "created_at"),
+        Index("uq_crawl_jobs_active_source", "source_id", unique=True,
+              postgresql_where=text("status IN ('PENDING', 'RUNNING')"),
+              sqlite_where=text("status IN ('PENDING', 'RUNNING')")),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     source_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("onion_sources.id"), nullable=False)

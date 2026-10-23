@@ -37,7 +37,9 @@ def _audit(session: Session, source_id: uuid.UUID, action: str, job_id: uuid.UUI
     ))
 
 
-async def collect_one(source_id: uuid.UUID, factory: sessionmaker[Session], *, fetcher=fetch_onion_root) -> tuple[uuid.UUID, str]:
+async def collect_one(source_id: uuid.UUID, factory: sessionmaker[Session], *,
+                      fetcher=fetch_onion_root,
+                      existing_job_id: uuid.UUID | None = None) -> tuple[uuid.UUID, str]:
     """Aucun changement réseau hors du fetcher Tor ; une seule racine, une requête.
 
     Tous les échecs réseau sont mémorisés sous un code générique sans URL de
@@ -61,12 +63,18 @@ async def collect_one(source_id: uuid.UUID, factory: sessionmaker[Session], *, f
             .limit(MAX_RULES_PER_JOB)
         ).all()
         rules = [RuleSpec(item.id, item.phrase, item.weight) for item in active_rules]
-        job = CrawlJob(source_id=source_id, status="RUNNING", started_at=_utcnow())
-        session.add(job)
-        session.flush()
-        job_id = job.id
-        _audit(session, source_id, "collection.start", job_id)
-        session.commit()
+        if existing_job_id is None:
+            job = CrawlJob(source_id=source_id, status="RUNNING", started_at=_utcnow())
+            session.add(job)
+            session.flush()
+            job_id = job.id
+            _audit(session, source_id, "collection.start", job_id)
+            session.commit()
+        else:
+            job = session.get(CrawlJob, existing_job_id)
+            if job is None or job.source_id != source_id or job.status != "RUNNING":
+                raise NotAuthorizedError("Job non réclamé par le collecteur")
+            job_id = existing_job_id
 
     try:
         result = await fetcher(url)
@@ -88,6 +96,9 @@ async def collect_one(source_id: uuid.UUID, factory: sessionmaker[Session], *, f
         job = session.get(CrawlJob, job_id)
         if not _allowed(source):
             error_code = "AUTHORIZATION_REVOKED"
+        # A killed/stale worker must never overwrite a job externally closed.
+        if job.status != "RUNNING":
+            return job_id, job.status
         if error_code is not None:
             if error_code == "TOR_NETWORK_ERROR" and _allowed(source):
                 source.availability_status = "UNAVAILABLE"

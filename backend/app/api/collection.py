@@ -23,6 +23,25 @@ def list_jobs(source_id: uuid.UUID | None = None, limit: int = Query(50, ge=1, l
     return _listing(db, CrawlJob, JobOut, source_id, limit, offset)
 
 
+@router.get("/latest", response_model=list[JobOut])
+def latest_jobs(
+    source_ids: list[uuid.UUID] = Query(default=[], max_length=50),
+    db: Session = Depends(get_session),
+) -> list[CrawlJob]:
+    """Latest job per requested source, bounded to the visible UI page."""
+    if not source_ids:
+        return []
+    ranks = (select(
+        CrawlJob.id.label("id"),
+        func.row_number().over(
+            partition_by=CrawlJob.source_id,
+            order_by=(CrawlJob.created_at.desc(), CrawlJob.id.desc()),
+        ).label("rn"),
+    ).where(CrawlJob.source_id.in_(source_ids)).subquery())
+    return list(db.scalars(select(CrawlJob).join(ranks, CrawlJob.id == ranks.c.id)
+                           .where(ranks.c.rn == 1)).all())
+
+
 @router.get("/jobs/{job_id}", response_model=JobOut)
 def get_job(job_id: uuid.UUID, db: Session = Depends(get_session)) -> CrawlJob:
     job = db.get(CrawlJob, job_id)

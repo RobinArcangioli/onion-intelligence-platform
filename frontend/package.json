@@ -1,13 +1,13 @@
 {
   "name": "oip-dashboard",
   "private": true,
-  "version": "0.9.0",
+  "version": "1.0.0-rc.1",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "test:unit": "node --experimental-strip-types --test tests/*.test.mts",
+    "test:unit": "node --loader ./tests/ts-loader.mjs --test tests/*.test.mts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

@@ -42,7 +42,8 @@ def client(db_session_factory: sessionmaker[Session]) -> Iterator[TestClient]:
             yield db
 
     def override_settings() -> Settings:
-        return Settings(database_url="sqlite+pysqlite://", api_key=SecretStr("local-test-only-api-key-strong-and-unique"))
+        return Settings(database_url="sqlite+pysqlite://", api_key=SecretStr("local-test-only-api-key-strong-and-unique"),
+                        legacy_api_key_enabled=True)
 
     app.dependency_overrides[get_session] = override_session
     app.dependency_overrides[get_settings] = override_settings

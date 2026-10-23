@@ -11,7 +11,7 @@ from app.api.auth import router as auth_router
 app = FastAPI(
     title="Onion Intelligence Platform API",
     description="Collecte Tor contrôlée et manuelle, classification hors ligne et signaux CTI non vérifiés.",
-    version="0.8.0",
+    version="1.0.0-rc2",
 )
 app.include_router(health_router)
 app.include_router(sources_router)

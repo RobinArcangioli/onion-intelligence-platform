@@ -16,12 +16,14 @@ ROOT = Path(os.environ.get('OIP_TEST_REPO_ROOT', str(Path(__file__).resolve().pa
 def test_only_gateway_has_published_loopback_port():
     config = yaml.safe_load((ROOT / 'compose.yaml').read_text())
     services = config['services']
-    for name in ('db', 'api', 'collector', 'tor'):
+    for name in ('db', 'api', 'collector', 'tor', 'queue_worker'):
         assert not services[name].get('ports'), name
     assert services['gateway']['ports'] == ['127.0.0.1:8000:8080']
     assert 'tor_egress' not in services['collector']['networks']
     assert 'ingress' not in services['collector']['networks']
     assert services['collector']['networks'] == ['private', 'tor_proxy']
+    assert services['queue_worker']['networks'] == ['private', 'tor_proxy']
+    assert services['queue_worker']['profiles'] == ['tor']
     assert config['networks']['tor_proxy']['internal'] is True
     assert config['networks']['private']['internal'] is True
     assert services['tests']['network_mode'] == 'none'

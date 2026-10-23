@@ -25,7 +25,7 @@ services:
     environment:
       OIP_DATABASE_URL: postgresql+psycopg://${OIP_DB_USER:?required}:${OIP_DB_PASSWORD:?required}@db:5432/${OIP_DB_NAME:?required}
       OIP_API_KEY: ${OIP_API_KEY:?Configurer OIP_API_KEY}
-      OIP_LEGACY_API_KEY_ENABLED: ${OIP_LEGACY_API_KEY_ENABLED:-true}
+      OIP_LEGACY_API_KEY_ENABLED: ${OIP_LEGACY_API_KEY_ENABLED:-false}
     depends_on:
       db:
         condition: service_healthy
@@ -75,9 +75,15 @@ services:
     # Only the non-secret repository files inspected by tests are mounted.
     environment:
       OIP_TEST_REPO_ROOT: /app
+      OIP_TEST_FRONTEND_PACKAGE: /app/tests/frontend-package.json
+      OIP_TEST_FRONTEND_TS_LOADER: /app/tests/frontend-ts-loader.mjs
     volumes:
       - ./compose.yaml:/app/compose.yaml:ro
       - ./scripts:/app/scripts:ro
+      - ./frontend/Dockerfile:/app/frontend/Dockerfile:ro
+      # Read-only individual artifacts, rather than mounting the entire frontend tree.
+      - ./frontend/package.json:/app/tests/frontend-package.json:ro
+      - ./frontend/tests/ts-loader.mjs:/app/tests/frontend-ts-loader.mjs:ro
     read_only: true
     tmpfs:
       - /tmp
@@ -125,6 +131,32 @@ services:
     security_opt:
       - no-new-privileges:true
 
+
+
+  queue_worker:
+    profiles: [tor]
+    build:
+      context: ./backend
+      target: runtime
+    entrypoint: ["python", "-m", "app.collector.worker"]
+    environment:
+      OIP_DATABASE_URL: postgresql+psycopg://${OIP_DB_USER:?required}:${OIP_DB_PASSWORD:?required}@db:5432/${OIP_DB_NAME:?required}
+      OIP_TOR_COLLECTION_ENABLED: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+      tor:
+        condition: service_started
+    networks: [private, tor_proxy]
+    read_only: true
+    tmpfs: [/tmp]
+    init: true
+    pids_limit: 64
+    mem_limit: 256m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
 
 
 volumes:

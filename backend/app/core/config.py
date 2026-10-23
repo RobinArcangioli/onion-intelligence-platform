@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     database_url: str
     api_key: SecretStr
-    legacy_api_key_enabled: bool = True
+    legacy_api_key_enabled: bool = False
 
     model_config = SettingsConfigDict(env_prefix="OIP_", extra="ignore")
 

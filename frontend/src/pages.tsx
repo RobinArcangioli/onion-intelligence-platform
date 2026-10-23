@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { api, downloadExport } from './lib/api';
+import { canCollectNow, jobLabel } from './lib/manualCollection';
 import type { Alert, Audit, Classification, Correlation, Discovery, Indicator, Job, Observation, Page, Report, Rule, Source, Watchlist } from './lib/types';
 import { APPROVAL, NOTE, dateTime, limit, localDateInput, priorDays, query, readableError, shortNumber } from './lib/util';
 import { DateCell, Empty, Icon, Mono, PageHead, Pager, Panel, Score, Status } from './components/ui';
@@ -83,13 +84,39 @@ export function Overview({token,refresh,onNotice: _notice,go}: Shared & {go:(nex
   </>;
 }
 
-export function Sources({token,refresh,onNotice}:Shared) {
+export function Sources({token,refresh,onNotice,role}:Shared & {role:string}) {
   const [search,setSearch]=useState('');const [applied,setApplied]=useState('');const [active,setActive]=useState('');const [offset,setOffset]=useState(0);const [seq,setSeq]=useState(0);
   const [showForm,setShowForm]=useState(false);const [edit,setEdit]=useState<Source|null>(null);const [history,setHistory]=useState<{source:Source;items:Audit[]}|null>(null);const [busy,setBusy]=useState(false);
   const [name,setName]=useState('');const [url,setUrl]=useState('');const [desc,setDesc]=useState('');const [priority,setPriority]=useState(3);const [consent,setConsent]=useState(false);
   const endpoint='/api/v1/sources'+query({limit,offset,q:applied,active:active===''?undefined:active==='true'});
   const {data,loading,error}=useList<Source>(token,endpoint,refresh+seq);
+  const [latest,setLatest]=useState<Record<string,Job>>({});
+  const [enqueuing,setEnqueuing]=useState<string[]>([]);
+  const sourceIds=data.items.map(s=>s.id).join(',');
+  useEffect(()=>{
+    const ids=sourceIds.split(',').filter(Boolean);
+    let alive=true;
+    if(!ids.length){setLatest({});return ()=>{alive=false;};}
+    const endpoint='/api/v1/collection/latest?'+ids.map(id=>'source_ids='+encodeURIComponent(id)).join('&');
+    async function update(){try{
+      const jobs=await api.get<Job[]>(token,endpoint);
+      if(alive)setLatest(Object.fromEntries(jobs.map(j=>[j.source_id,j])));
+    }catch{/* The source list handles API errors; don't repeatedly toast polling failures. */}}
+    void update();
+    const poll=window.setInterval(()=>{void update();},4000);
+    return ()=>{alive=false;window.clearInterval(poll);};
+  },[token,sourceIds,refresh,seq]);
   const reload=()=>setSeq(n=>n+1);
+  async function manualCollection(s:Source){
+    if(!canCollectNow(s,latest[s.id]?.status,enqueuing.includes(s.id),role))return;
+    setEnqueuing(current=>[...current,s.id]);
+    try {
+      const job=await api.post<Job>(token,`/api/v1/sources/${s.id}/collection/run`,{reason:NOTE});
+      setLatest(current=>({...current,[s.id]:job}));
+      onNotice('Collecte ajoutée à la file. Le worker Tor la traitera dès qu’il sera actif.');
+    }catch(err){onNotice(readableError(err),'error');reload();}
+    finally{setEnqueuing(current=>current.filter(id=>id!==s.id));}
+  }
   function resetForm(){setName('');setUrl('');setDesc('');setPriority(3);setConsent(false);setEdit(null);setShowForm(false);}
   function openEdit(s:Source){setEdit(s);setName(s.name);setDesc(s.description);setPriority(s.priority);setShowForm(true);}
   async function submit(e:FormEvent){e.preventDefault();setBusy(true);
@@ -112,7 +139,8 @@ export function Sources({token,refresh,onNotice}:Shared) {
       <div className="filter-row"><form className="search-box" onSubmit={e=>{e.preventDefault();setOffset(0);setApplied(search.trim());}}><Icon name="search" size={18}/><input aria-label="Recherche source" placeholder="Rechercher nom, URL ou description" value={search} onChange={e=>setSearch(e.target.value)}/><button type="submit">Chercher</button></form>
         <Select value={active} change={v=>{setOffset(0);setActive(v);}} label="Filtrer statut" options={[{value:'',label:'Tous les statuts'},{value:'true',label:'Actives'},{value:'false',label:'Inactives'}]}/></div>
       <Failure text={error}/>
-      <TableShell><thead><tr><th>Source</th><th>Catégorie</th><th>État</th><th>Autorisation</th><th>Collecte</th><th>Priorité</th><th>Actions</th></tr></thead><tbody>{data.items.map(s=><tr key={s.id}><td><div className="cell-main"><strong>{s.name}</strong><Mono value={s.canonical_url}/></div></td><td><span className="category-tag">{s.category}</span></td><td><Status value={s.is_active}/></td><td><Status value={s.approved_for_collection?'APPROVED':'REVOKED'}/></td><td><Status value={s.collection_enabled?'ACTIVE':'DISABLED'}/></td><td><span className="priority-index">P{s.priority}</span></td><td><div className="row-actions"><button className="tiny-btn" onClick={()=>openEdit(s)}>Modifier</button><button className="tiny-btn" onClick={()=>showHistory(s)}>Audit</button>{s.is_active?<button className="tiny-btn" onClick={()=>sourceAction(s,'deactivate')}>Pause</button>:<button className="tiny-btn" onClick={()=>sourceAction(s,'activate')}>Activer</button>}{s.approved_for_collection?<button className="tiny-btn caution" onClick={()=>sourceAction(s,'revoke')}>Révoquer</button>:<button className="tiny-btn" onClick={()=>sourceAction(s,'approve')}>Approuver</button>}{s.collection_enabled?<button className="tiny-btn caution" onClick={()=>sourceAction(s,'disable')}>Stop collecte</button>:<button className="tiny-btn" disabled={!s.is_active||!s.approved_for_collection} onClick={()=>sourceAction(s,'enable')}>Autoriser collecte</button>}</div></td></tr>)}
+      <p className="page-footnote">La collecte est ponctuelle : le service <code>queue_worker</code> doit être démarré dans le profil Tor. Les statuts sont actualisés toutes les 4 secondes. Aucun lien découvert n’est visité.</p>
+      <TableShell><thead><tr><th>Source</th><th>Catégorie</th><th>État</th><th>Autorisation</th><th>Collecte</th><th>Priorité</th><th>Actions</th></tr></thead><tbody>{data.items.map(s=><tr key={s.id}><td><div className="cell-main"><strong>{s.name}</strong><Mono value={s.canonical_url}/></div></td><td><span className="category-tag">{s.category}</span></td><td><Status value={s.is_active}/></td><td><Status value={s.approved_for_collection?'APPROVED':'REVOKED'}/></td><td><div className="cell-main"><Status value={s.collection_enabled?'ACTIVE':'DISABLED'}/>{latest[s.id]&&<span className="muted small" aria-label={`Dernière collecte : ${latest[s.id].status}`}><Status value={latest[s.id].status}/> · {dateTime(latest[s.id].created_at)}</span>}</div></td><td><span className="priority-index">P{s.priority}</span></td><td><div className="row-actions"><button className="tiny-btn collect-now-btn" disabled={!canCollectNow(s,latest[s.id]?.status,enqueuing.includes(s.id),role)} onClick={()=>manualCollection(s)} aria-label={`Collecter maintenant : ${s.name}`}>{enqueuing.includes(s.id)?'Ajout…':jobLabel(latest[s.id]?.status)}</button><button className="tiny-btn" onClick={()=>openEdit(s)}>Modifier</button><button className="tiny-btn" onClick={()=>showHistory(s)}>Audit</button>{s.is_active?<button className="tiny-btn" onClick={()=>sourceAction(s,'deactivate')}>Pause</button>:<button className="tiny-btn" onClick={()=>sourceAction(s,'activate')}>Activer</button>}{s.approved_for_collection?<button className="tiny-btn caution" onClick={()=>sourceAction(s,'revoke')}>Révoquer</button>:<button className="tiny-btn" onClick={()=>sourceAction(s,'approve')}>Approuver</button>}{s.collection_enabled?<button className="tiny-btn caution" onClick={()=>sourceAction(s,'disable')}>Stop collecte</button>:<button className="tiny-btn" disabled={!s.is_active||!s.approved_for_collection} onClick={()=>sourceAction(s,'enable')}>Autoriser collecte</button>}</div></td></tr>)}
         {!data.items.length&&tdEmpty(7,loading)}</tbody></TableShell>
       <Pager total={data.total} offset={offset} pageSize={limit} onChange={setOffset}/>
     </Panel>

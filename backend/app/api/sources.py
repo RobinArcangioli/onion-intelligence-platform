@@ -14,7 +14,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db.session import get_session
-from app.models import AuditLog, OnionSource
+from app.models import AuditLog, OnionSource, CrawlJob
+from app.schemas.collection import JobOut
+from app.security.onion import canonical_onion_root
 from app.schemas.source import (
     SourceApproval, SourceAuditOut, SourceCreate, SourceHistory,
     SourceList, SourceOut, SourcePatch, SourceReason,
@@ -267,6 +269,42 @@ def restore_source(source_id: uuid.UUID, payload: SourceReason, db: Session = De
     source.collection_enabled = False
     _audit(db, source, "source.restore", reason=payload.reason)
     return _save(db, source)
+
+
+@router.post("/{source_id}/collection/run", status_code=status.HTTP_202_ACCEPTED,
+             response_model=JobOut, dependencies=[Depends(require_role("ANALYST"))])
+def enqueue_manual_collection(
+    source_id: uuid.UUID, payload: SourceReason, db: Session = Depends(get_session),
+) -> CrawlJob:
+    """Audited one-shot request. NO Tor call, Docker invocation or auto-discovery.
+
+    PostgreSQL source lock serializes requests against approval/revocation, and
+    the partial unique index rejects any duplicate active job (also across pods).
+    """
+    source = _source(db, source_id, lock=True)
+    if not (source.is_active and source.approved_for_collection and source.collection_enabled):
+        raise HTTPException(status_code=409, detail="Collecte non autorisée pour cette source")
+    try:
+        if canonical_onion_root(source.canonical_url) != source.canonical_url:
+            raise ValueError("Invalid root")
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail="Adresse Onion invalide") from exc
+    existing = db.scalar(select(CrawlJob).where(
+        CrawlJob.source_id == source_id, CrawlJob.status.in_(("PENDING", "RUNNING")),
+    ))
+    if existing is not None:
+        raise HTTPException(status_code=409, detail="Une collecte est déjà en attente ou en cours")
+    job = CrawlJob(source_id=source_id, status="PENDING")
+    db.add(job)
+    db.flush()
+    _audit(db, source, "collection.enqueue", reason=payload.reason, job_id=str(job.id))
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Une collecte est déjà en attente ou en cours") from exc
+    db.refresh(job)
+    return job
 
 
 @router.get("/{source_id}/history", response_model=SourceHistory)

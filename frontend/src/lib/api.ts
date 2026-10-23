@@ -4,7 +4,14 @@ export class ApiError extends Error {
   constructor(status: number, message: string) { super(message); this.name = 'ApiError'; this.status = status; }
 }
 export function safePath(path: string): string {
-  if (!path.startsWith('/api/') || path.startsWith('//') || path.includes('\\') || /[\r\n]/.test(path)) {
+  // Reject dot-segment normalization and URL encoding tricks before attaching a secret.
+  // The browser must never normalize an API route to a static or outside-origin path.
+  if (!path.startsWith('/api/') || path.startsWith('//') || path.includes('\\')
+      || /[\r\n\t#]/.test(path) || /%(?:2e|2f|5c|00)/i.test(path)) {
+    throw new Error('Invalid API route');
+  }
+  const parsed = new URL(path, 'http://oip.invalid');
+  if (parsed.origin !== 'http://oip.invalid' || !parsed.pathname.startsWith('/api/')) {
     throw new Error('Invalid API route');
   }
   return path;

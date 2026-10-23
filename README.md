@@ -1,3 +1,25 @@
+# ONION INTELLIGENCE PLATFORM — v1.0.0-rc2
+
+**Mini-lot : bouton « ▶ Collecter » par source, file de tâches manuelles PostgreSQL et worker Tor isolé.** Version candidate, pas encore étiquetée v1.0 stable.
+
+La mise à jour **nécessite la migration non destructive `0008_manual_queue`** (automatiquement exécutée au démarrage de l'API) et l'activation explicite du nouveau service `queue_worker`. Les sources restent désactivées pour la collecte tant qu'un administrateur ne les a pas autorisées ; aucun job n'est créé automatiquement.
+
+```bash
+cd ~/onion-intelligence-platform
+sudo bash scripts/backup-db.sh
+sudo bash scripts/validate-v1.sh --core
+sudo docker compose --profile tor up --build -d tor queue_worker
+```
+
+Ouvrez ensuite **http://127.0.0.1:8000/** → **Sources Onion** : sur une source approuvée et autorisée, un opérateur `ADMIN` ou `ANALYST` peut cliquer **▶ Collecter**. Statuts : `PENDING → RUNNING → COMPLETED / FAILED`. Le collecteur ne visite que la racine Onion approuvée, jamais les liens découverts.
+
+**Guide du lot rc2 :** [docs/17-ui-collecte-manuelle-rc2.md](docs/17-ui-collecte-manuelle-rc2.md). La validation `--release` garde les contrôles d'identité, d'audits, de build et de tests Chromium. Avant le tag stable, renouveler les secrets précédemment exposés.
+
+
+---
+
+## Historique de développement
+
 > **Version courante : OIP v0.9.0 — lot 8 (stabilisation).** Aucun changement de schéma PostgreSQL depuis `0007_named_access`. Exécuter `sudo bash scripts/validate-lot8.sh` après installation (sans visite de services Onion). Voir [docs/14-lot8-stabilisation.md](docs/14-lot8-stabilisation.md) pour les commandes et les limites.
 
 # ONION INTELLIGENCE PLATFORM — v0.8.0 / Lot 7

@@ -28,7 +28,7 @@ def test_upgrade_from_lot4_preserves_existing_data(tmp_path):
         db.execute(text("INSERT INTO threat_indicators(id,observation_id,source_id,indicator_type,public_reference,verification_status,confidence,evidence_codes,ruleset_version) VALUES (:i,:o,:s,'PUBLIC_CVE_REFERENCE','CVE-2025-12345','OBSERVED_REFERENCE',55,'[]','1.0')"), {'i':iid,'o':oid,'s':sid})
     upgrade(url, 'head', backend)
     with engine.connect() as db:
-        assert db.execute(text('SELECT version_num FROM alembic_version')).scalar() == '0007_named_access'
+        assert db.execute(text('SELECT version_num FROM alembic_version')).scalar() == '0008_manual_queue'
         assert db.execute(text('SELECT count(*) FROM threat_indicators')).scalar() == 1
         assert db.execute(text('SELECT text_sha256 FROM source_observations WHERE id=:o'),{'o':oid}).scalar() == 'a'*64
         assert db.execute(text('SELECT count(*) FROM alerts')).scalar() == 0

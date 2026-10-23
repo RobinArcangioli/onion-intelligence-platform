@@ -21,7 +21,7 @@ test('relevance percentage is clamped', () => {
 });
 test('API client rejects cross-origin and unsafe prefixes', () => {
   assert.equal(safePath('/api/v1/sources'), '/api/v1/sources');
-  for (const unsafe of ['https://example.com', '//evil.tld/api/a', '/outside', '/api/\\evil']) {
+  for (const unsafe of ['https://example.com', '//evil.tld/api/a', '/outside', '/api/\\evil', '/api/../outside', '/api/%2e%2e/outside', '/api/%2foutside', '/api/v1/x#frag']) {
     assert.throws(() => safePath(unsafe));
   }
 });

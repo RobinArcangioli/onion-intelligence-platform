@@ -25,7 +25,7 @@ def test_upgrade_lot3_to_lot4_preserves_existing_rows(tmp_path):
     migrate(url,'head',backend)
     engine=create_engine(url)
     with engine.connect() as db:
-        assert db.execute(text('SELECT version_num FROM alembic_version')).scalar() == '0007_named_access'
+        assert db.execute(text('SELECT version_num FROM alembic_version')).scalar() == '0008_manual_queue'
         assert db.execute(text('SELECT text_length FROM source_observations WHERE id=:id'),{'id':oid}).scalar() == 5
         assert db.execute(text('SELECT collection_enabled FROM onion_sources WHERE id=:id'),{'id':sid}).scalar() == 0
         assert {'classification_results','threat_indicators'}.issubset(set(inspect(engine).get_table_names()))

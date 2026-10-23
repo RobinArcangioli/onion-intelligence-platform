@@ -179,3 +179,14 @@ Voir `docs/13-lot7-security-hardening.md`.
 - Aucun lien Onion réel n'est visité par les tests.
 - L'absence de fuites DNS ou de toute exfiltration ne peut pas être prouvée par ces seuls contrôles.
 - **Statut : à valider sur l'installation opérateur.**
+
+
+## Release candidate v1.0.0-rc1 — 23 octobre 2026
+
+- Suite Python : 176 tests exécutés localement, 176 réussis.
+- Suite Node : 9 tests exécutés localement, 9 réussis.
+- Tests de sécurité : défaut désactivé pour la clé partagée, contrôle des ports et de la topologie Compose, validation de routes frontend.
+- Contrôles en attente : Docker v1 sur le poste opérateur, Playwright, audits npm/PyPI, verrouillage npm, revue des images Docker et PRA externe.
+- Statut : **release candidate ; pas de déclaration v1.0 stable**.
+
+Voir `docs/16-release-v1-rc1.md` et `docs/17-release-checklist.md`.
