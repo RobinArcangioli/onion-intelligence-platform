@@ -40,3 +40,8 @@ frontend/*.tsbuildinfo
 
 # Local sensitive database backups
 /backups/
+
+# Playwright local artifacts: may contain captured metadata.
+/frontend/test-results/
+/frontend/playwright-report/
+/frontend/.playwright/

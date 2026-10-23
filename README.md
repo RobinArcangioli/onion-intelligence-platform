@@ -1,3 +1,5 @@
+> **Version courante : OIP v0.9.0 — lot 8 (stabilisation).** Aucun changement de schéma PostgreSQL depuis `0007_named_access`. Exécuter `sudo bash scripts/validate-lot8.sh` après installation (sans visite de services Onion). Voir [docs/14-lot8-stabilisation.md](docs/14-lot8-stabilisation.md) pour les commandes et les limites.
+
 # ONION INTELLIGENCE PLATFORM — v0.8.0 / Lot 7
 
 **Nouvelle livraison : gestion des accès nominatifs, rôles et consolidation.**

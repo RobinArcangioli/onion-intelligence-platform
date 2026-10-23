@@ -38,7 +38,7 @@ function Login({onReady}: {onReady:(key:string,identity:Identity)=>void}) {
       {error && <p className="form-error" role="alert">{error}</p>}
       <button className="btn btn-primary login-submit" disabled={busy||key.trim().length<32}>{busy?'Vérification…':'Accéder au dashboard'}<Icon name="arrow"/></button></form>
     <p className="login-foot"><Icon name="shield" size={14}/> Clé conservée en mémoire uniquement · aucune persistance navigateur</p>
-  </div><div className="login-bottom">OIP / OPERATOR CONSOLE <span>V0.8.0</span></div></main>;
+  </div><div className="login-bottom">OIP / OPERATOR CONSOLE <span>V0.9.0</span></div></main>;
 }
 
 export default function App() {
@@ -64,7 +64,7 @@ export default function App() {
       </nav>
       <div className="sidebar-bottom"><div className="secure-card"><Icon name="shield" size={22}/><strong>Périmètre contrôlé</strong><p>Accès local uniquement. Aucune exploration automatique.</p></div>
         <button className="nav-link logout-link" onClick={disconnect}><Icon name="logout"/> Déconnecter</button>
-        <div className="sidebar-version">OIP CONSOLE <span>v0.8.0 / LOCAL</span></div>
+        <div className="sidebar-version">OIP CONSOLE <span>v0.9.0 / LOCAL</span></div>
       </div>
     </aside>
     <div className="main-area">

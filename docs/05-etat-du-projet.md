@@ -166,3 +166,16 @@ Voir `docs/11-lot5-alertes-rapports.md`.
 - Limites restantes : MFA, sessions centralisées, tests Docker réel de restauration, politique de rétention, RBAC graphique exhaustif, durcissement/contrôle egress système.
 
 Voir `docs/13-lot7-security-hardening.md`.
+
+
+## Lot 8 — v0.9.0 (livraison pour validation)
+
+- Aucun changement d'API métier ni migration supplémentaire.
+- Tests de flux complet simulé, échecs réseau et frontières d'autorisation.
+- Contrôle Docker runtime de l'absence de sortie directe du collecteur (à exécuter sur Linux).
+- Répétition non destructive de pg_dump / pg_restore dans une base PostgreSQL éphémère (à exécuter sur Linux).
+- Smoke API/dashboard sans mutation, option authentifiée via jeton transmis en variable d'environnement.
+- Scénarios navigateur Playwright facultatifs ; non exécutés dans l'environnement de préparation.
+- Aucun lien Onion réel n'est visité par les tests.
+- L'absence de fuites DNS ou de toute exfiltration ne peut pas être prouvée par ces seuls contrôles.
+- **Statut : à valider sur l'installation opérateur.**
