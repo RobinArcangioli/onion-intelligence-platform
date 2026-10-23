@@ -16,6 +16,7 @@ services:
       retries: 12
     networks: [private]
     restart: unless-stopped
+    pids_limit: 128
 
   api:
     build:
@@ -24,6 +25,7 @@ services:
     environment:
       OIP_DATABASE_URL: postgresql+psycopg://${OIP_DB_USER:?required}:${OIP_DB_PASSWORD:?required}@db:5432/${OIP_DB_NAME:?required}
       OIP_API_KEY: ${OIP_API_KEY:?Configurer OIP_API_KEY}
+      OIP_LEGACY_API_KEY_ENABLED: ${OIP_LEGACY_API_KEY_ENABLED:-true}
     depends_on:
       db:
         condition: service_healthy
@@ -42,6 +44,7 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+    pids_limit: 128
 
   gateway:
     build:
@@ -61,6 +64,7 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+    pids_limit: 128
 
   tests:
     profiles: [test]
@@ -68,6 +72,12 @@ services:
       context: ./backend
       target: test
     command: ["pytest", "-q", "-p", "no:cacheprovider"]
+    # Only the non-secret repository files inspected by tests are mounted.
+    environment:
+      OIP_TEST_REPO_ROOT: /app
+    volumes:
+      - ./compose.yaml:/app/compose.yaml:ro
+      - ./scripts:/app/scripts:ro
     read_only: true
     tmpfs:
       - /tmp
@@ -75,7 +85,7 @@ services:
     security_opt:
       - no-new-privileges:true
     network_mode: none
-
+    pids_limit: 128
 
   tor:
     profiles: [tor]
@@ -89,6 +99,7 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+    pids_limit: 128
 
   collector:
     profiles: [tor]
@@ -108,6 +119,8 @@ services:
     read_only: true
     tmpfs: [/tmp]
     init: true
+    pids_limit: 64
+    mem_limit: 256m
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true

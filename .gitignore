@@ -37,3 +37,6 @@ build/
 node_modules/
 frontend/dist/
 frontend/*.tsbuildinfo
+
+# Local sensitive database backups
+/backups/

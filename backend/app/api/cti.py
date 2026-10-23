@@ -12,7 +12,7 @@ from app.classifiers.rules import taxonomy
 from app.db.session import get_session
 from app.models import AuditLog, ClassificationResult, ThreatIndicator, KeywordMatch, WatchlistRule, Watchlist, SourceObservation
 from app.schemas.cti import ClassificationOut, ClassificationReview, IndicatorOut
-from app.security.api_key import require_api_key
+from app.security.api_key import require_api_key, require_role
 
 router = APIRouter(prefix="/api/v1/cti", tags=["cti"], dependencies=[Depends(require_api_key)])
 
@@ -56,7 +56,7 @@ def get_classification(classification_id: uuid.UUID, db: Session = Depends(get_s
     return row
 
 
-@router.post("/classifications/{classification_id}/review", response_model=ClassificationOut)
+@router.post("/classifications/{classification_id}/review", response_model=ClassificationOut, dependencies=[Depends(require_role("ANALYST"))])
 def review_classification(classification_id: uuid.UUID, payload: ClassificationReview,
                           db: Session = Depends(get_session)) -> ClassificationResult:
     row = db.scalar(select(ClassificationResult)
@@ -68,7 +68,7 @@ def review_classification(classification_id: uuid.UUID, payload: ClassificationR
     row.review_status = payload.decision
     row.review_reason = payload.reason
     row.reviewed_at = datetime.now(timezone.utc)
-    db.add(AuditLog(actor="api_key_operator", action="classification.review", entity_type="classification",
+    db.add(AuditLog(actor=db.info.get("actor", "api_key_operator"), action="classification.review", entity_type="classification",
                     entity_id=row.id, details=json.dumps({"decision": payload.decision, "reason": payload.reason})))
     db.commit()
     db.refresh(row)

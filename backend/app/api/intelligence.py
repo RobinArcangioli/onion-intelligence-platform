@@ -15,13 +15,13 @@ from app.models import (AuditLog, DiscoveredOnion, KeywordMatch, SourceObservati
 from app.schemas.collection import DiscoveryOut
 from app.schemas.intelligence import (ActiveUpdate, DiscoveryReview, RuleCreate,
                                       RuleOut, WatchlistCreate, WatchlistOut)
-from app.security.api_key import require_api_key
+from app.security.api_key import require_api_key, require_role
 
 router = APIRouter(prefix="/api/v1", tags=["intelligence"], dependencies=[Depends(require_api_key)])
 
 
 def _audit(db: Session, action: str, kind: str, item_id: uuid.UUID, reason: str = "Manual check") -> None:
-    db.add(AuditLog(actor="api_key_operator", action=action, entity_type=kind,
+    db.add(AuditLog(actor=db.info.get("actor", "api_key_operator"), action=action, entity_type=kind,
                     entity_id=item_id, details=json.dumps({"reason": reason})))
 
 
@@ -49,7 +49,7 @@ def list_watchlists(limit: int = Query(50, ge=1, le=100), offset: int = Query(0,
             "items": [WatchlistOut.model_validate(x) for x in rows]}
 
 
-@router.post("/watchlists", response_model=WatchlistOut, status_code=status.HTTP_201_CREATED)
+@router.post("/watchlists", response_model=WatchlistOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role("ANALYST"))])
 def create_watchlist(payload: WatchlistCreate, db: Session = Depends(get_session)) -> Watchlist:
     row = Watchlist(name=payload.name)
     try:
@@ -64,7 +64,7 @@ def create_watchlist(payload: WatchlistCreate, db: Session = Depends(get_session
         raise HTTPException(409, "Watchlist already exists") from exc
 
 
-@router.patch("/watchlists/{watchlist_id}", response_model=WatchlistOut)
+@router.patch("/watchlists/{watchlist_id}", response_model=WatchlistOut, dependencies=[Depends(require_role("ANALYST"))])
 def update_watchlist(watchlist_id: uuid.UUID, payload: ActiveUpdate,
                      db: Session = Depends(get_session)) -> Watchlist:
     row = _watchlist(db, watchlist_id)
@@ -87,7 +87,7 @@ def list_rules(watchlist_id: uuid.UUID, limit: int = Query(50, ge=1, le=100),
             "items": [RuleOut.model_validate(x) for x in rows]}
 
 
-@router.post("/watchlists/{watchlist_id}/rules", response_model=RuleOut, status_code=201)
+@router.post("/watchlists/{watchlist_id}/rules", response_model=RuleOut, status_code=201, dependencies=[Depends(require_role("ANALYST"))])
 def create_rule(watchlist_id: uuid.UUID, payload: RuleCreate,
                 db: Session = Depends(get_session)) -> WatchlistRule:
     _watchlist(db, watchlist_id)
@@ -109,7 +109,7 @@ def create_rule(watchlist_id: uuid.UUID, payload: RuleCreate,
         raise HTTPException(409, "Duplicate phrase") from exc
 
 
-@router.patch("/watchlist-rules/{rule_id}", response_model=RuleOut)
+@router.patch("/watchlist-rules/{rule_id}", response_model=RuleOut, dependencies=[Depends(require_role("ANALYST"))])
 def update_rule(rule_id: uuid.UUID, payload: ActiveUpdate, db: Session = Depends(get_session)) -> WatchlistRule:
     row = _rule(db, rule_id)
     row.is_active = payload.is_active
@@ -136,7 +136,7 @@ def observation_analysis(observation_id: uuid.UUID, db: Session = Depends(get_se
             "warning": "Relevance is not evidence of harm or verification."}
 
 
-@router.post("/collection/discoveries/{discovery_id}/review", response_model=DiscoveryOut)
+@router.post("/collection/discoveries/{discovery_id}/review", response_model=DiscoveryOut, dependencies=[Depends(require_role("ANALYST"))])
 def review_discovery(discovery_id: uuid.UUID, payload: DiscoveryReview,
                      db: Session = Depends(get_session)) -> DiscoveredOnion:
     row = db.scalar(select(DiscoveredOnion).where(DiscoveredOnion.id == discovery_id).with_for_update())

@@ -1,3 +1,5 @@
+> **Mise à jour lot 7 :** l'écran de connexion accepte désormais également un jeton individuel d'opérateur et affiche le nom/rôle connecté. La clé partagée de `.env` est transitoire ; voir `docs/13-lot7-security-hardening.md`.
+
 # Lot 6 — Dashboard Web (v0.7.0)
 
 ## Objet et périmètre

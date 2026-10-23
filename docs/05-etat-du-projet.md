@@ -156,3 +156,13 @@ Voir `docs/11-lot5-alertes-rapports.md`.
 - Pas de migration de base ; révision attendue `0006_alerts_reports`.
 - Tests backend : 157 réussis ; tests utilitaires frontend : 9 réussis ; build npm/Vite non exécuté dans l'environnement de préparation.
 - Étape suivante : contrôle du build React dans Docker, test de connexion et des écrans, commit puis tag Git `v0.7.0-lot6`.
+
+## Lot 7 — Accès nominatifs et consolidation (v0.8.0)
+
+- Code livré ; migration `0007_named_access` créée ; tests et validation sur instance Docker de l'opérateur attendus.
+- Jetons individuels à expiration, rôles VIEWER / ANALYST / ADMIN, lecture d'identité et audit nominatif ; clé partagée conservée uniquement durant la transition.
+- Scripts de sauvegarde/restauration PostgreSQL avec précautions de sécurité et refus de restauration lorsque des services applicatifs sont encore actifs.
+- Collecteur : aucune capacité réseau ajoutée ; isolation Docker contrôlée statiquement et quotas de processus/mémoire supplémentaires.
+- Limites restantes : MFA, sessions centralisées, tests Docker réel de restauration, politique de rétention, RBAC graphique exhaustif, durcissement/contrôle egress système.
+
+Voir `docs/13-lot7-security-hardening.md`.

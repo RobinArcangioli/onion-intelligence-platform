@@ -12,7 +12,7 @@ from app.db.session import get_session
 from app.models import Alert, AuditLog, OnionSource, Report
 from app.reports.builder import build_snapshot, export_csv
 from app.schemas.reporting import AlertOut, AlertReview, ReportCreate, ReportOut
-from app.security.api_key import require_api_key
+from app.security.api_key import require_api_key, require_role
 
 router = APIRouter(prefix="/api/v1", tags=["alerts-reports"], dependencies=[Depends(require_api_key)])
 
@@ -49,7 +49,7 @@ def get_alert(alert_id: uuid.UUID, db: Session = Depends(get_session)) -> Alert:
     return row
 
 
-@router.patch("/alerts/{alert_id}", response_model=AlertOut)
+@router.patch("/alerts/{alert_id}", response_model=AlertOut, dependencies=[Depends(require_role("ANALYST"))])
 def review_alert(alert_id: uuid.UUID, payload: AlertReview,
                  db: Session = Depends(get_session)) -> Alert:
     row = db.scalar(select(Alert).where(Alert.id == alert_id).with_for_update())
@@ -66,14 +66,14 @@ def review_alert(alert_id: uuid.UUID, payload: AlertReview,
         row.acknowledged_at = now
     else:
         row.resolved_at = now
-    db.add(AuditLog(actor="api_key_operator", action="alert.review", entity_type="alert",
+    db.add(AuditLog(actor=db.info.get("actor", "api_key_operator"), action="alert.review", entity_type="alert",
                     entity_id=row.id, details=json.dumps({"status": payload.status, "reason": payload.reason})))
     db.commit()
     db.refresh(row)
     return row
 
 
-@router.post("/reports", response_model=ReportOut, status_code=201)
+@router.post("/reports", response_model=ReportOut, status_code=201, dependencies=[Depends(require_role("ANALYST"))])
 def create_report(payload: ReportCreate, db: Session = Depends(get_session)) -> Report:
     if payload.source_id is not None and db.get(OnionSource, payload.source_id) is None:
         raise HTTPException(404, "Source not found")
@@ -84,7 +84,7 @@ def create_report(payload: ReportCreate, db: Session = Depends(get_session)) -> 
                  period_end=payload.period_end, snapshot=snapshot)
     db.add(row)
     db.flush()
-    db.add(AuditLog(actor="api_key_operator", action="report.create", entity_type="report",
+    db.add(AuditLog(actor=db.info.get("actor", "api_key_operator"), action="report.create", entity_type="report",
                     entity_id=row.id, details="{}"))
     db.commit()
     db.refresh(row)

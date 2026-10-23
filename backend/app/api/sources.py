@@ -20,7 +20,7 @@ from app.schemas.source import (
     SourceList, SourceOut, SourcePatch, SourceReason,
     SourceImportRequest, SourceImportResult,
 )
-from app.security.api_key import require_api_key
+from app.security.api_key import require_api_key, require_role
 
 router = APIRouter(
     prefix="/api/v1/sources", tags=["sources"],
@@ -45,7 +45,7 @@ def _source(
 def _audit(db: Session, source: OnionSource, action: str, *, reason: str, **extra: object) -> None:
     data = {"reason": reason, **extra}
     db.add(AuditLog(
-        actor="api_key_operator", action=action,
+        actor=db.info.get("actor", "api_key_operator"), action=action,
         entity_type="onion_source", entity_id=source.id,
         details=json.dumps(data, ensure_ascii=False, sort_keys=True),
     ))
@@ -100,7 +100,7 @@ def list_sources(
     return SourceList(total=total, limit=limit, offset=offset, items=[SourceOut.model_validate(x) for x in rows])
 
 
-@router.post("", response_model=SourceOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SourceOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role("ADMIN"))])
 def create_source(payload: SourceCreate, db: Session = Depends(get_session)) -> OnionSource:
     source = OnionSource(
         canonical_url=payload.url, name=payload.name,
@@ -153,7 +153,7 @@ def export_sources_csv(db: Session = Depends(get_session)) -> Response:
     )
 
 
-@router.post("/import", response_model=SourceImportResult, status_code=201)
+@router.post("/import", response_model=SourceImportResult, status_code=201, dependencies=[Depends(require_role("ADMIN"))])
 def import_sources(payload: SourceImportRequest, db: Session = Depends(get_session)) -> SourceImportResult:
     """Import JSON atomique : 1 à 100 sources validées, aucune visite réseau."""
     urls = [item.url for item in payload.items]
@@ -186,7 +186,7 @@ def get_source(source_id: uuid.UUID, db: Session = Depends(get_session)) -> Onio
     return _source(db, source_id)
 
 
-@router.patch("/{source_id}", response_model=SourceOut)
+@router.patch("/{source_id}", response_model=SourceOut, dependencies=[Depends(require_role("ADMIN"))])
 def patch_source(source_id: uuid.UUID, payload: SourcePatch, db: Session = Depends(get_session)) -> OnionSource:
     source = _source(db, source_id, lock=True)
     changed = []
@@ -201,7 +201,7 @@ def patch_source(source_id: uuid.UUID, payload: SourcePatch, db: Session = Depen
     return source
 
 
-@router.post("/{source_id}/deactivate", response_model=SourceOut)
+@router.post("/{source_id}/deactivate", response_model=SourceOut, dependencies=[Depends(require_role("ADMIN"))])
 def deactivate_source(source_id: uuid.UUID, payload: SourceReason, db: Session = Depends(get_session)) -> OnionSource:
     source = _source(db, source_id, lock=True)
     if source.is_active:
@@ -212,7 +212,7 @@ def deactivate_source(source_id: uuid.UUID, payload: SourceReason, db: Session =
     return source
 
 
-@router.post("/{source_id}/activate", response_model=SourceOut)
+@router.post("/{source_id}/activate", response_model=SourceOut, dependencies=[Depends(require_role("ADMIN"))])
 def activate_source(source_id: uuid.UUID, payload: SourceReason, db: Session = Depends(get_session)) -> OnionSource:
     source = _source(db, source_id, lock=True)
     if not source.is_active:
@@ -223,7 +223,7 @@ def activate_source(source_id: uuid.UUID, payload: SourceReason, db: Session = D
     return source
 
 
-@router.post("/{source_id}/revoke", response_model=SourceOut)
+@router.post("/{source_id}/revoke", response_model=SourceOut, dependencies=[Depends(require_role("ADMIN"))])
 def revoke_source(source_id: uuid.UUID, payload: SourceReason, db: Session = Depends(get_session)) -> OnionSource:
     source = _source(db, source_id, lock=True)
     if source.approved_for_collection:
@@ -234,7 +234,7 @@ def revoke_source(source_id: uuid.UUID, payload: SourceReason, db: Session = Dep
     return source
 
 
-@router.post("/{source_id}/approve", response_model=SourceOut)
+@router.post("/{source_id}/approve", response_model=SourceOut, dependencies=[Depends(require_role("ADMIN"))])
 def approve_source(source_id: uuid.UUID, payload: SourceApproval, db: Session = Depends(get_session)) -> OnionSource:
     source = _source(db, source_id, lock=True)
     source.approved_for_collection = True
@@ -244,7 +244,7 @@ def approve_source(source_id: uuid.UUID, payload: SourceApproval, db: Session = 
     return _save(db, source)
 
 
-@router.delete("/{source_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{source_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role("ADMIN"))])
 def delete_source(source_id: uuid.UUID, payload: SourceReason, db: Session = Depends(get_session)) -> Response:
     source = _source(db, source_id, lock=True)
     source.deleted_at = datetime.now(timezone.utc)
@@ -256,7 +256,7 @@ def delete_source(source_id: uuid.UUID, payload: SourceReason, db: Session = Dep
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.post("/{source_id}/restore", response_model=SourceOut)
+@router.post("/{source_id}/restore", response_model=SourceOut, dependencies=[Depends(require_role("ADMIN"))])
 def restore_source(source_id: uuid.UUID, payload: SourceReason, db: Session = Depends(get_session)) -> OnionSource:
     source = _source(db, source_id, include_deleted=True, lock=True)
     if source.deleted_at is None:
@@ -292,7 +292,7 @@ def get_source_history(
     )
 
 
-@router.post("/{source_id}/collection/enable", response_model=SourceOut)
+@router.post("/{source_id}/collection/enable", response_model=SourceOut, dependencies=[Depends(require_role("ADMIN"))])
 def enable_collection(source_id: uuid.UUID, payload: SourceReason, db: Session = Depends(get_session)) -> OnionSource:
     """Activation explicite, distincte de l'approbation ; aucun lancement réseau."""
     source = _source(db, source_id, lock=True)
@@ -305,7 +305,7 @@ def enable_collection(source_id: uuid.UUID, payload: SourceReason, db: Session =
     return source
 
 
-@router.post("/{source_id}/collection/disable", response_model=SourceOut)
+@router.post("/{source_id}/collection/disable", response_model=SourceOut, dependencies=[Depends(require_role("ADMIN"))])
 def disable_collection(source_id: uuid.UUID, payload: SourceReason, db: Session = Depends(get_session)) -> OnionSource:
     source = _source(db, source_id, lock=True)
     if source.collection_enabled:

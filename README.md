@@ -1,3 +1,23 @@
+# ONION INTELLIGENCE PLATFORM — v0.8.0 / Lot 7
+
+**Nouvelle livraison : gestion des accès nominatifs, rôles et consolidation.**
+
+- Migration : `0007_named_access` (opérateurs et jetons personnels révocables).
+
+- Interface locale : `http://127.0.0.1:8000/`.
+
+- Aucun nouveau crawl Tor ; collecteur manuel uniquement sur sources approuvées.
+
+- Documentation de mise à niveau, révocation de jetons et sauvegarde : [Lot 7](docs/13-lot7-security-hardening.md).
+
+- La clé partagée historique reste acceptée **seulement pendant la transition** tant que `OIP_LEGACY_API_KEY_ENABLED=true`. Désactivez-la après avoir créé et testé un compte admin nominatif.
+
+- Validation à confirmer sur votre Docker/PostgreSQL réel avant de considérer le lot comme stable.
+
+---
+
+## Historique des lots précédents
+
 # ONION INTELLIGENCE PLATFORM (OIP)
 
 **Version :** 0.6.0 — Lot 5, alertes locales et rapports JSON/CSV.

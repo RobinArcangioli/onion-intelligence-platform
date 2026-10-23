@@ -34,7 +34,7 @@ def test_lot2_upgrade_preserves_observations_and_candidates(tmp_path: Path):
     _migrate(url, 'head', backend_dir)
     engine = create_engine(url)
     with engine.connect() as con:
-        assert con.execute(text('SELECT version_num FROM alembic_version')).scalar() == '0006_alerts_reports'
+        assert con.execute(text('SELECT version_num FROM alembic_version')).scalar() == '0007_named_access'
         assert con.execute(text('SELECT relevance_score,keyword_hits,change_status FROM source_observations WHERE id=:id'),
                            {'id':observation_id}).one() == (0,0,"UNKNOWN")
         assert con.execute(text('SELECT status,evidence_kind,reviewed_at FROM discovered_onions WHERE id=:id'),

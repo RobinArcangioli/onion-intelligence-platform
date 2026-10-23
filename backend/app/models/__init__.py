@@ -8,3 +8,5 @@ __all__ = ["OnionSource", "AuditLog", "CrawlJob", "SourceObservation", "Discover
 from .cti import ClassificationResult, ThreatIndicator
 
 from .reporting import Alert, Report
+from .identity import Operator, OperatorToken
+__all__ += ["Operator", "OperatorToken"]

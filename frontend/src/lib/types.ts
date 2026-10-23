@@ -1,3 +1,4 @@
+export interface Identity { username: string; role: "VIEWER"|"ANALYST"|"ADMIN"; legacy: boolean }
 export interface Page<T> { total: number; limit: number; offset: number; items: T[] }
 export interface Source {
   id: string; canonical_url: string; name: string; description: string; category: string;

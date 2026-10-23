@@ -117,3 +117,6 @@ Fichiers modifiés : extracteur/runner, modèles d'observation, réponses API, r
 ## Étape suivante
 
 Poursuivre les protections (débit global, sérialisation par source, politique de rétention) puis classifier prudemment les observations et générer les alertes non intrusives. Aucun ajout automatique de source ni navigation multi-pages sans contrôle préalable.
+
+
+oip_lnE5ParwWZDZ2urORa8jtGhTxdc8iADM6onZou5MFE8

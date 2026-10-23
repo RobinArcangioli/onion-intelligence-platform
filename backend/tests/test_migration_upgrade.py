@@ -40,6 +40,6 @@ def test_lot0_upgrade_preserves_sources(tmp_path: Path):
         assert row[3] == 1
         assert row[4] == 0
         assert row[5] is None
-        assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar() == "0006_alerts_reports"
+        assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar() == "0007_named_access"
     assert "details" in {col["name"] for col in inspect(engine).get_columns("audit_logs")}
     engine.dispose()
