@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     database_url: str
     api_key: SecretStr
     legacy_api_key_enabled: bool = False
+    # Global gate: the OVH private deployment disables job submission until Tor is approved.
+    manual_collection_enabled: bool = True
 
     model_config = SettingsConfigDict(env_prefix="OIP_", extra="ignore")
 

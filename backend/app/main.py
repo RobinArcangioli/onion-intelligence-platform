@@ -7,6 +7,10 @@ from app.api.intelligence import router as intelligence_router
 from app.api.cti import router as cti_router
 from app.api.reporting import router as reporting_router
 from app.api.auth import router as auth_router
+from app.api.schedules import router as schedules_router
+from app.api.observations import router as observations_router
+from app.api.cases import router as cases_router
+from app.api.case_operations import router as case_operations_router
 
 app = FastAPI(
     title="Onion Intelligence Platform API",
@@ -20,6 +24,10 @@ app.include_router(intelligence_router)
 app.include_router(cti_router)
 app.include_router(reporting_router)
 app.include_router(auth_router)
+app.include_router(schedules_router)
+app.include_router(observations_router)
+app.include_router(cases_router)
+app.include_router(case_operations_router)
 
 
 @app.middleware("http")
@@ -27,4 +35,8 @@ async def add_security_headers(request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
     return response

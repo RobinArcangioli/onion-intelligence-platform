@@ -38,7 +38,25 @@ sudo docker compose logs --tail=30 tor queue_worker
 
 Ouvrez **Sources Onion** : ajoutez une source autorisée (`ADMIN`), activez son autorisation de collecte, puis cliquez **▶ Collecter**. Consultez le statut `PENDING → RUNNING → COMPLETED / FAILED` et les observations.
 
+## Développement M3 (hors production)
+
+La branche M3 ajoute une **planification opt-in par source**, désactivée
+par défaut, sous contrôle ADMIN, avec fenêtres UTC, expiration, budget
+quotidien et audit des décisions. Le scheduler **n'effectue aucune requête
+réseau** : il dépose uniquement des jobs en base, soumis aux contrôles M2.
+Voir [M3 — Surveillance gouvernée](docs/m3-governed-scheduling.md).
+
+**Ne pas activer sur OVH :** `0010_governed_schedules` requiert une sauvegarde
+restaurée et des tests de concurrence PostgreSQL préalables. Le contrat Tor
+reste à confirmer avant tout usage réel.
+
+## M4-A — Exploration des observations (non déployé)
+
+Une page **Observations** propose la recherche sur titres/descriptions conservés, des filtres historiques et une comparaison d’empreintes. La migration optionnelle de performance PostgreSQL `0011_observation_metadata_fts` est prévue **hors production** : ne pas la lancer sur OVH tant que la restauration hors site n’est pas validée. [Guide M4-A](docs/m4-observation-investigation.md).
+
 ## Documentation
+
+**Durcissement M7-A (hors production)** : voir [modèle de menace et contrôles HTTP](docs/m7a-security-hardening.md). Les configurations Nginx et FastAPI mises à jour ne sont pas encore déployées sur OVH.
 
 | Document | Public | Contenu |
 |---|---|---|
@@ -47,6 +65,14 @@ Ouvrez **Sources Onion** : ajoutez une source autorisée (`ADMIN`), activez son 
 | [Architecture et sécurité](docs/architecture-securite.md) | Équipe technique | Diagrammes, réseaux, contrôles, risques résiduels et limites de la collecte |
 | [API et développement](docs/api-developpement.md) | Développeurs | API, tests, migrations, frontend et contributions |
 | [Publication GitHub](docs/publication-github.md) | Mainteneurs | Nettoyage, inspection Git/historique, secrets, vérifications avant push |
+
+## M5-B (développement hors production)
+
+La détection **optionnelle** de mentions explicites d'IOC (domaines, IP publiques, SHA-256) exige `OIP_IOC_EXTRACTION_ENABLED=yes` dans l'environnement du collecteur. Par défaut elle est désactivée. Les analystes disposent d'une revue à motifs codifiés ; aucune corrélation ou alerte malveillante ne découle automatiquement d'une simple mention. Voir [M5-B : candidats IOC et minimisation](docs/m5b-ioc-candidates.md). Cette version ne doit pas être migrée sur OVH sans recette PostgreSQL 17 et sauvegarde restaurable hors site.
+
+## Qualité documentaire CTI (M5-C, hors production)
+
+La vue M5-C combine une note explicable de *qualité des mentions* (distincte de la priorité humaine), des cooccurrences CVE/IOC acceptées sur la **même observation**, et un historique d’audit expurgé. Aucune mention ne confirme malveillance ou exploitation. Voir [la note technique M5-C](docs/m5c-documentary-quality.md). Aucun nouveau traitement réseau ni migration supplémentaire n’est nécessaire pour cette vue ; elle reste non déployée sur OVH.
 
 ## Validation
 
@@ -62,3 +88,32 @@ La validation ne visite **aucun service Onion réel**. Le test Playwright facult
 **Gel d'implémentation :** ce nettoyage ne modifie pas les routes, les modèles, les migrations, les composants React ni le collecteur. L'état historique des versions et les comptes rendus de lots ont été retirés de la documentation active.
 
 **Licence :** aucune licence open source n'est définie dans cette distribution. Choisissez-en explicitement une avant toute publication présentée comme open source ; publier du code sur GitHub n'accorde pas automatiquement un droit de réutilisation.
+
+### Développement M5-A (hors production)
+
+Le workflow de revue des références **CVE publiques** et la corrélation documentaire
+sont décrits dans [M5-A — CTI publique gouvernée](docs/m5a-public-reference-triage.md).
+La migration `0013_indicator_triage` n'est pas autorisée sur le VPS OVH avant
+une restauration externe vérifiée et des tests PostgreSQL 17 dédiés.
+
+## M6-A — Dossiers d'analyse (hors production)
+
+L'espace **Dossiers** permet aux analystes d'associer un dossier à une alerte,
+de l'assigner à un opérateur actif, d'enregistrer revue/escalade/clôture et
+de consulter la chronologie des décisions. Le verrou de version empêche
+l'écrasement silencieux des mises à jour concurrentes ; aucun extrait de
+page ni commentaire libre n'est enregistré. Cette fonctionnalité ajoute la
+migration additive `0015_analyst_cases`, **non appliquée sur OVH**. Voir
+[le guide M6-A](docs/m6a-analyst-cases.md).
+
+## Module expérimental M6-C (hors production)
+
+Le module [Opérations analystes](docs/m6c-case-operations.md) ajoute des politiques
+ADMIN explicitement approuvées, des brouillons locaux `NOT_SENT` et un rapport
+agrégé sans extrait de source. Aucun transport externe n'est implémenté.
+La migration `0017` ne doit pas être appliquée au VPS avant recette PostgreSQL 17
+et restauration vérifiée.
+
+## Sécurité des identités — lot M7-B2 (hors production)
+
+La vue **Mes accès** permet à chaque opérateur nominatif de consulter les métadonnées de ses jetons (sans secret). Les administrateurs locaux disposent de commandes `issue --label` et `rotate` avec limite de cinq jetons actifs, ainsi que de la révocation et des protections M7-B1. Voir [Gouvernance des jetons M7-B2](docs/m7b2-token-governance.md). Ces nouveautés restent non déployées sur OVH jusqu'à la recette PostgreSQL et à une restauration vérifiée.

@@ -6,6 +6,7 @@ import sys
 import uuid
 
 from app.collector.runner import NotAuthorizedError, collect_one
+from app.collector.policy import emergency_active, read_policy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -14,6 +15,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Collecte ponctuelle d'une source Onion v3 autorisée")
     parser.add_argument("source_id", type=uuid.UUID)
     args = parser.parse_args()
+    if emergency_active(read_policy()):
+        print("Collecte arrêtée : arrêt d'urgence actif", file=sys.stderr)
+        return 2
     if os.getenv("OIP_TOR_COLLECTION_ENABLED", "false").lower() != "true":
         print("Collecte Tor désactivée : OIP_TOR_COLLECTION_ENABLED=true requis", file=sys.stderr)
         return 2

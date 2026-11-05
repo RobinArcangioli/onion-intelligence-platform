@@ -9,6 +9,7 @@ class CrawlJob(Base):
     __tablename__ = "crawl_jobs"
     __table_args__ = (
         Index("ix_crawl_jobs_source_created", "source_id", "created_at"),
+        Index("ix_crawl_jobs_running_lease", "status", "lease_expires_at"),
         Index("uq_crawl_jobs_active_source", "source_id", unique=True,
               postgresql_where=text("status IN ('PENDING', 'RUNNING')"),
               sqlite_where=text("status IN ('PENDING', 'RUNNING')")),
@@ -19,6 +20,10 @@ class CrawlJob(Base):
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="PENDING", server_default="PENDING")
     error_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
     started_at: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Internal fencing secret: never expose in API responses, events or logs.
+    lease_token: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    lease_expires_at: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    heartbeat_at: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -42,6 +47,15 @@ class SourceObservation(Base):
     keyword_hits: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     discovered_links: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     created_at: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+# Keep ORM metadata aligned with Alembic 0012. Each index has the same DESC
+# ordering used for pagination and for the preceding-observation lookup.
+Index("ix_obs_recent_id_desc", SourceObservation.created_at.desc(), SourceObservation.id.desc())
+Index("ix_obs_source_recent_id_desc", SourceObservation.source_id,
+      SourceObservation.created_at.desc(), SourceObservation.id.desc())
+Index("ix_obs_hash_recent_id_desc", SourceObservation.text_sha256,
+      SourceObservation.created_at.desc(), SourceObservation.id.desc())
 
 
 class DiscoveredOnion(Base):

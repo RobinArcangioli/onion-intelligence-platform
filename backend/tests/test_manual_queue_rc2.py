@@ -70,7 +70,7 @@ def test_manual_queue_permissions_and_source_approval(client, db_session_factory
         assert json.loads(log.details)['reason'] == 'Manual check'
 
 
-def test_worker_claim_and_one_http_root_only(client, db_session_factory, valid_onion_url):
+def test_worker_claim_and_one_http_root_only(client, db_session_factory, valid_onion_url, monkeypatch):
     sid = registered(client, valid_onion_url)
     enable(client, sid)
     queued = client.post(f'/api/v1/sources/{sid}/collection/run', headers=LEGACY, json=REASON)
@@ -91,7 +91,10 @@ def test_worker_claim_and_one_http_root_only(client, db_session_factory, valid_o
         assert str(observation.job_id) == queued.json()['id']
     assert asyncio.run(process_one(db_session_factory, fetcher=fake_fetch)) is False
     assert len(seen) == 1
-    # A later explicit click is allowed and creates a distinct one-shot job.
+    # M2-C: default source cooldown blocks immediate repetition, but an
+    # operator can make a NEW explicit click after the configured interval.
+    assert client.post(f'/api/v1/sources/{sid}/collection/run', headers=LEGACY, json=REASON).status_code == 429
+    monkeypatch.setenv('OIP_COLLECTION_SOURCE_COOLDOWN_SECONDS', '0')
     assert client.post(f'/api/v1/sources/{sid}/collection/run', headers=LEGACY, json=REASON).status_code == 202
 
 
@@ -143,7 +146,7 @@ def test_worker_crash_generic_failed_job(db_session_factory, client, valid_onion
     res=client.post(f'/api/v1/sources/{sid}/collection/run',headers=LEGACY,json=REASON)
     claimed=claim_one(db_session_factory)
     assert str(claimed[0])==res.json()['id']
-    fail_claimed(db_session_factory, claimed[0])
+    fail_claimed(db_session_factory, claimed[0], claimed[2])
     job=client.get('/api/v1/collection/latest?source_ids='+sid,headers=LEGACY).json()[0]
     assert job['status']=='FAILED' and job['error_code']=='COLLECTION_FAILED'
 
@@ -181,7 +184,7 @@ def test_migration_from_rc1_creates_duplicate_job_guard(tmp_path):
         assert result.returncode==0,result.stdout+result.stderr
     engine=create_engine(url)
     with engine.begin() as db:
-        assert db.scalar(text('SELECT version_num FROM alembic_version'))=='0008_manual_queue'
+        assert db.scalar(text('SELECT version_num FROM alembic_version'))=='0017_case_notification_drafts'
         statement=db.scalar(text("SELECT sql FROM sqlite_master WHERE name='uq_crawl_jobs_active_source'"))
         assert statement and 'UNIQUE INDEX' in statement
     engine.dispose()
@@ -199,6 +202,7 @@ def test_recover_stale_only_closes_old_running_jobs(client, db_session_factory, 
     with db_session_factory() as db:
         job=db.get(CrawlJob,UUID(queued))
         job.started_at=datetime.now(timezone.utc)-timedelta(hours=2)
+        job.lease_expires_at=datetime.now(timezone.utc)-timedelta(minutes=2)
         db.commit()
     assert recover_stale(db_session_factory)==1
     assert recover_stale(db_session_factory)==0

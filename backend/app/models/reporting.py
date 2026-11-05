@@ -13,6 +13,7 @@ class Alert(Base):
         UniqueConstraint("fingerprint", name="uq_alert_fingerprint"),
         Index("ix_alerts_status_created", "status", "created_at"),
         Index("ix_alerts_source_created", "source_id", "created_at"),
+        Index("ix_alerts_observation_id", "observation_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)

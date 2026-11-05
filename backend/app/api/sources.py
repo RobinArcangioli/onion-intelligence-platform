@@ -14,7 +14,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db.session import get_session
-from app.models import AuditLog, OnionSource, CrawlJob
+from app.core.config import Settings, get_settings
+from app.collector.policy import admission_lock, pending_full, read_policy, source_restriction, emergency_active
+from app.models import AuditLog, OnionSource, CrawlJob, SourceSchedule
 from app.schemas.collection import JobOut
 from app.security.onion import canonical_onion_root
 from app.schemas.source import (
@@ -51,6 +53,14 @@ def _audit(db: Session, source: OnionSource, action: str, *, reason: str, **extr
         entity_type="onion_source", entity_id=source.id,
         details=json.dumps(data, ensure_ascii=False, sort_keys=True),
     ))
+
+
+def _pause_schedule(db: Session, source: OnionSource, reason: str) -> None:
+    """Source revocation/disable also revokes schedule opt-in."""
+    schedule = db.get(SourceSchedule, source.id)
+    if schedule is not None and schedule.enabled:
+        schedule.enabled = False
+        _audit(db, source, "schedule.pause_by_source", reason=reason)
 
 
 def _save(db: Session, source: OnionSource) -> OnionSource:
@@ -209,6 +219,7 @@ def deactivate_source(source_id: uuid.UUID, payload: SourceReason, db: Session =
     if source.is_active:
         source.is_active = False
         source.collection_enabled = False
+        _pause_schedule(db, source, "source.deactivate")
         _audit(db, source, "source.deactivate", reason=payload.reason)
         return _save(db, source)
     return source
@@ -231,6 +242,7 @@ def revoke_source(source_id: uuid.UUID, payload: SourceReason, db: Session = Dep
     if source.approved_for_collection:
         source.approved_for_collection = False
         source.collection_enabled = False
+        _pause_schedule(db, source, "source.revoke")
         _audit(db, source, "source.revoke", reason=payload.reason)
         return _save(db, source)
     return source
@@ -242,6 +254,7 @@ def approve_source(source_id: uuid.UUID, payload: SourceApproval, db: Session = 
     source.approved_for_collection = True
     source.collection_enabled = False
     source.authorization_note = payload.authorization_note
+    _pause_schedule(db, source, "source.approve")
     _audit(db, source, "source.approve", reason="Manual approval")
     return _save(db, source)
 
@@ -253,6 +266,7 @@ def delete_source(source_id: uuid.UUID, payload: SourceReason, db: Session = Dep
     source.is_active = False
     source.approved_for_collection = False
     source.collection_enabled = False
+    _pause_schedule(db, source, "source.delete")
     _audit(db, source, "source.delete", reason=payload.reason)
     _save(db, source)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -267,6 +281,7 @@ def restore_source(source_id: uuid.UUID, payload: SourceReason, db: Session = De
     source.is_active = False
     source.approved_for_collection = False
     source.collection_enabled = False
+    _pause_schedule(db, source, "source.restore")
     _audit(db, source, "source.restore", reason=payload.reason)
     return _save(db, source)
 
@@ -275,12 +290,25 @@ def restore_source(source_id: uuid.UUID, payload: SourceReason, db: Session = De
              response_model=JobOut, dependencies=[Depends(require_role("ANALYST"))])
 def enqueue_manual_collection(
     source_id: uuid.UUID, payload: SourceReason, db: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
 ) -> CrawlJob:
     """Audited one-shot request. NO Tor call, Docker invocation or auto-discovery.
 
     PostgreSQL source lock serializes requests against approval/revocation, and
     the partial unique index rejects any duplicate active job (also across pods).
     """
+    if not settings.manual_collection_enabled:
+        raise HTTPException(status_code=503, detail="Collecte manuelle désactivée sur cette instance")
+    try:
+        policy = read_policy()
+        halted = emergency_active(policy)
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail="Politique de collecte invalide") from exc
+    if halted:
+        raise HTTPException(status_code=503, detail="Arrêt d'urgence de la collecte activé")
+    # Global counters need serialization across independent API instances.
+    # Acquire this BEFORE the source lock (same ordering as queue_worker).
+    admission_lock(db)
     source = _source(db, source_id, lock=True)
     if not (source.is_active and source.approved_for_collection and source.collection_enabled):
         raise HTTPException(status_code=409, detail="Collecte non autorisée pour cette source")
@@ -294,6 +322,11 @@ def enqueue_manual_collection(
     ))
     if existing is not None:
         raise HTTPException(status_code=409, detail="Une collecte est déjà en attente ou en cours")
+    restriction = source_restriction(db, source_id, policy)
+    if restriction:
+        raise HTTPException(status_code=429, detail=restriction)
+    if pending_full(db, policy):
+        raise HTTPException(status_code=429, detail="GLOBAL_QUEUE_FULL")
     job = CrawlJob(source_id=source_id, status="PENDING")
     db.add(job)
     db.flush()
@@ -348,6 +381,7 @@ def disable_collection(source_id: uuid.UUID, payload: SourceReason, db: Session 
     source = _source(db, source_id, lock=True)
     if source.collection_enabled:
         source.collection_enabled = False
+        _pause_schedule(db, source, "collection.disable")
         _audit(db, source, "collection.disable", reason=payload.reason)
         return _save(db, source)
     return source

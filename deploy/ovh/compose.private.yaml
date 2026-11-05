@@ -1,0 +1,21 @@
+# OVH P0 private overlay. Use ONLY through deploy/ovh/deploy.sh.
+# Base compose.yaml binds the sole host port to 127.0.0.1:8000.
+# The preflight tests fail closed if the base compose changes that binding.
+# Tor, collector and queue_worker are never selected by the launcher.
+services:
+  db:
+    mem_limit: 1536m
+    logging: &bounded_logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  api:
+    environment:
+      OIP_MANUAL_COLLECTION_ENABLED: "false"
+      OIP_TOR_COLLECTION_ENABLED: "false"
+    mem_limit: 768m
+    logging: *bounded_logging
+  gateway:
+    mem_limit: 192m
+    logging: *bounded_logging

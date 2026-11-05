@@ -23,6 +23,12 @@ services:
       context: ./backend
       target: runtime
     environment:
+      OIP_COLLECTION_EMERGENCY_STOP: ${OIP_COLLECTION_EMERGENCY_STOP:-false}
+      OIP_COLLECTION_SOURCE_COOLDOWN_SECONDS: ${OIP_COLLECTION_SOURCE_COOLDOWN_SECONDS:-300}
+      OIP_COLLECTION_MAX_PENDING: ${OIP_COLLECTION_MAX_PENDING:-25}
+      OIP_COLLECTION_MAX_RUNNING: ${OIP_COLLECTION_MAX_RUNNING:-2}
+      OIP_COLLECTION_CIRCUIT_FAILURES: ${OIP_COLLECTION_CIRCUIT_FAILURES:-3}
+      OIP_COLLECTION_CIRCUIT_OPEN_SECONDS: ${OIP_COLLECTION_CIRCUIT_OPEN_SECONDS:-3600}
       OIP_DATABASE_URL: postgresql+psycopg://${OIP_DB_USER:?required}:${OIP_DB_PASSWORD:?required}@db:5432/${OIP_DB_NAME:?required}
       OIP_API_KEY: ${OIP_API_KEY:?Configurer OIP_API_KEY}
       OIP_LEGACY_API_KEY_ENABLED: ${OIP_LEGACY_API_KEY_ENABLED:-false}
@@ -114,6 +120,12 @@ services:
       target: runtime
     entrypoint: ["python", "-m", "app.collector.cli"]
     environment:
+      OIP_COLLECTION_EMERGENCY_STOP: ${OIP_COLLECTION_EMERGENCY_STOP:-false}
+      OIP_COLLECTION_SOURCE_COOLDOWN_SECONDS: ${OIP_COLLECTION_SOURCE_COOLDOWN_SECONDS:-300}
+      OIP_COLLECTION_MAX_PENDING: ${OIP_COLLECTION_MAX_PENDING:-25}
+      OIP_COLLECTION_MAX_RUNNING: ${OIP_COLLECTION_MAX_RUNNING:-2}
+      OIP_COLLECTION_CIRCUIT_FAILURES: ${OIP_COLLECTION_CIRCUIT_FAILURES:-3}
+      OIP_COLLECTION_CIRCUIT_OPEN_SECONDS: ${OIP_COLLECTION_CIRCUIT_OPEN_SECONDS:-3600}
       OIP_DATABASE_URL: postgresql+psycopg://${OIP_DB_USER:?required}:${OIP_DB_PASSWORD:?required}@db:5432/${OIP_DB_NAME:?required}
       OIP_TOR_COLLECTION_ENABLED: ${OIP_TOR_COLLECTION_ENABLED:-false}
     depends_on:
@@ -127,11 +139,45 @@ services:
     init: true
     pids_limit: 64
     mem_limit: 256m
+    cpus: 1.0
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
 
 
+
+  scheduler:
+    # DB-only: separate opt-in profile, independent from tor.
+    profiles: [scheduled]
+    build:
+      context: ./backend
+      target: runtime
+    entrypoint: ["python", "-m", "app.scheduler.cli"]
+    command: ["loop", "--interval", "60"]
+    environment:
+      OIP_SCHEDULER_ENABLED: ${OIP_SCHEDULER_ENABLED:-false}
+      OIP_MANUAL_COLLECTION_ENABLED: ${OIP_MANUAL_COLLECTION_ENABLED:-false}
+      OIP_COLLECTION_EMERGENCY_STOP: ${OIP_COLLECTION_EMERGENCY_STOP:-false}
+      OIP_COLLECTION_SOURCE_COOLDOWN_SECONDS: ${OIP_COLLECTION_SOURCE_COOLDOWN_SECONDS:-300}
+      OIP_COLLECTION_MAX_PENDING: ${OIP_COLLECTION_MAX_PENDING:-25}
+      OIP_COLLECTION_MAX_RUNNING: ${OIP_COLLECTION_MAX_RUNNING:-2}
+      OIP_COLLECTION_CIRCUIT_FAILURES: ${OIP_COLLECTION_CIRCUIT_FAILURES:-3}
+      OIP_COLLECTION_CIRCUIT_OPEN_SECONDS: ${OIP_COLLECTION_CIRCUIT_OPEN_SECONDS:-3600}
+      OIP_DATABASE_URL: postgresql+psycopg://${OIP_DB_USER:?required}:${OIP_DB_PASSWORD:?required}@db:5432/${OIP_DB_NAME:?required}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [private]
+    read_only: true
+    tmpfs: [/tmp]
+    init: true
+    pids_limit: 64
+    mem_limit: 128m
+    cpus: 0.5
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
 
   queue_worker:
     profiles: [tor]
@@ -140,6 +186,12 @@ services:
       target: runtime
     entrypoint: ["python", "-m", "app.collector.worker"]
     environment:
+      OIP_COLLECTION_EMERGENCY_STOP: ${OIP_COLLECTION_EMERGENCY_STOP:-false}
+      OIP_COLLECTION_SOURCE_COOLDOWN_SECONDS: ${OIP_COLLECTION_SOURCE_COOLDOWN_SECONDS:-300}
+      OIP_COLLECTION_MAX_PENDING: ${OIP_COLLECTION_MAX_PENDING:-25}
+      OIP_COLLECTION_MAX_RUNNING: ${OIP_COLLECTION_MAX_RUNNING:-2}
+      OIP_COLLECTION_CIRCUIT_FAILURES: ${OIP_COLLECTION_CIRCUIT_FAILURES:-3}
+      OIP_COLLECTION_CIRCUIT_OPEN_SECONDS: ${OIP_COLLECTION_CIRCUIT_OPEN_SECONDS:-3600}
       OIP_DATABASE_URL: postgresql+psycopg://${OIP_DB_USER:?required}:${OIP_DB_PASSWORD:?required}@db:5432/${OIP_DB_NAME:?required}
       OIP_TOR_COLLECTION_ENABLED: "true"
     depends_on:
@@ -153,6 +205,7 @@ services:
     init: true
     pids_limit: 64
     mem_limit: 256m
+    cpus: 1.0
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true

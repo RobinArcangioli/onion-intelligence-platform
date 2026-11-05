@@ -5,18 +5,26 @@ import type { Identity } from './lib/types';
 import { Icon, Notice } from './components/ui';
 import type { IconName } from './components/ui';
 import { Overview, Sources, Discoveries, Threats, Watchlists, Alerts, Reports } from './pages';
+import { ObservationExplorer } from './components/ObservationExplorer';
+import { CaseDesk } from './components/CaseDesk';
+import { CaseOperations } from './components/CaseOperations';
+import { AccessInventory } from './components/AccessInventory';
 
-type Section = 'overview'|'sources'|'discoveries'|'intelligence'|'watchlists'|'alerts'|'reports';
+type Section = 'overview'|'sources'|'observations'|'discoveries'|'intelligence'|'watchlists'|'alerts'|'cases'|'operations'|'reports'|'access';
 const navigation: {id: Section; label: string; icon: IconName; group: string}[] = [
   {id:'overview', label:'Vue générale', icon:'grid', group:'ESPACE DE TRAVAIL'},
   {id:'sources', label:'Sources Onion', icon:'layers', group:''},
+  {id:'observations', label:'Observations', icon:'activity', group:''},
   {id:'discoveries', label:'Découvertes', icon:'radar', group:''},
   {id:'intelligence', label:'Intelligence CTI', icon:'shield', group:'INVESTIGATION'},
   {id:'watchlists', label:'Watchlists', icon:'eye', group:''},
   {id:'alerts', label:'Alertes', icon:'bell', group:''},
+  {id:'cases', label:'Dossiers', icon:'file', group:''},
+  {id:'operations', label:'Opérations', icon:'activity', group:''},
   {id:'reports', label:'Rapports', icon:'file', group:'EXPORTS'},
+  {id:'access', label:'Mes accès', icon:'lock', group:'COMPTE'},
 ];
-const pageTitles: Record<Section,string> = {overview:'Vue générale',sources:'Sources Onion',discoveries:'Découvertes',intelligence:'Intelligence CTI',watchlists:'Watchlists',alerts:'Alertes',reports:'Rapports'};
+const pageTitles: Record<Section,string> = {overview:'Vue générale',sources:'Sources Onion',observations:'Observations',discoveries:'Découvertes',intelligence:'Intelligence CTI',watchlists:'Watchlists',alerts:'Alertes',cases:'Dossiers',operations:'Opérations',reports:'Rapports',access:'Mes accès'};
 
 function Login({onReady}: {onReady:(key:string,identity:Identity)=>void}) {
   const [key, setKey] = useState('');
@@ -59,7 +67,7 @@ export default function App() {
       <div className="brand"><span className="brand-mark"><Icon name="radar" size={24}/></span><span><strong>OIP<span className="accent">.</span></strong><small>INTELLIGENCE PLATFORM</small></span></div>
       <div className="workspace-indicator"><div className="workspace-avatar">OI</div><span><strong>Local workspace</strong><small><span className="online-dot"/> Connected</small></span><Icon name="chevron" size={14}/></div>
       <nav aria-label="Navigation principale">
-        {navigation.map((item)=><div key={item.id}>{item.group && <div className="nav-group">{item.group}</div>}
+        {navigation.filter(item=>!(['cases','operations'].includes(item.id))||identity?.role!=='VIEWER').map((item)=><div key={item.id}>{item.group && <div className="nav-group">{item.group}</div>}
           <button className={`nav-link ${section===item.id?'nav-link-active':''}`} aria-current={section===item.id?'page':undefined} onClick={()=>navigate(item.id)}><Icon name={item.icon} size={19}/><span>{item.label}</span>{section===item.id&&<i/>}</button></div>)}
       </nav>
       <div className="sidebar-bottom"><div className="secure-card"><Icon name="shield" size={22}/><strong>Périmètre contrôlé</strong><p>Accès local uniquement. Aucune exploration automatique.</p></div>
@@ -75,11 +83,15 @@ export default function App() {
       <div className="content" key={section}>
         {section==='overview'&&<Overview {...props} go={navigate}/>}
         {section==='sources'&&<Sources {...props} role={identity?.role ?? 'VIEWER'}/>}
+        {section==='observations'&&<ObservationExplorer token={token} refresh={refresh}/>}
         {section==='discoveries'&&<Discoveries {...props}/>}
-        {section==='intelligence'&&<Threats {...props}/>}
+        {section==='intelligence'&&<Threats {...props} role={identity?.role ?? 'VIEWER'}/>}
         {section==='watchlists'&&<Watchlists {...props}/>}
         {section==='alerts'&&<Alerts {...props}/>}
+        {section==='cases'&&identity?.role!=='VIEWER'&&<CaseDesk {...props}/>}
+        {section==='operations'&&identity?.role!=='VIEWER'&&<CaseOperations {...props} role={identity?.role ?? 'VIEWER'}/>}
         {section==='reports'&&<Reports {...props}/>}
+        {section==='access'&&<AccessInventory token={token} refresh={refresh}/>}
       </div>
       <footer className="page-footer"><span>OIP · VEILLE DOCUMENTAIRE CONTRÔLÉE</span><span>Aucune allégation n'est une preuve de compromission.</span></footer>
     </div>

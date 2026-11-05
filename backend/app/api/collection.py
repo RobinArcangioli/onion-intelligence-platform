@@ -1,12 +1,13 @@
 """Lecture des jobs et observations ; aucune route HTTP ne lance le collecteur."""
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from app.db.session import get_session
 from app.models import CrawlJob, DiscoveredOnion, SourceObservation
 from app.schemas.collection import DiscoveryOut, JobOut, ObservationOut
-from app.security.api_key import require_api_key
+from app.security.api_key import require_api_key, require_role
 
 router = APIRouter(prefix="/api/v1/collection", tags=["collection"], dependencies=[Depends(require_api_key)])
 
@@ -16,6 +17,27 @@ def _listing(db: Session, model: type, response_type: type, source_id: uuid.UUID
     total = db.scalar(select(func.count()).select_from(model).where(*conditions)) or 0
     rows = db.scalars(select(model).where(*conditions).order_by(model.created_at.desc(), model.id.desc()).offset(offset).limit(limit)).all()
     return {"total": total, "limit": limit, "offset": offset, "items": [response_type.model_validate(r) for r in rows]}
+
+
+@router.get("/metrics", dependencies=[Depends(require_role("ADMIN"))])
+def collection_metrics(db: Session = Depends(get_session)) -> dict:
+    """Small authenticated DB aggregate. No source URLs, tokens or identities."""
+    rows = db.execute(select(CrawlJob.status, func.count(CrawlJob.id))
+                      .group_by(CrawlJob.status)).all()
+    counts = {state: 0 for state in ("PENDING", "RUNNING", "COMPLETED", "FAILED")}
+    for state, count in rows:
+        if state in counts:
+            counts[state] = count
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    recent_failed = db.scalar(select(func.count(CrawlJob.id)).where(
+        CrawlJob.status == "FAILED", CrawlJob.finished_at >= cutoff)) or 0
+    oldest = db.scalar(select(func.min(CrawlJob.created_at))
+                       .where(CrawlJob.status == "PENDING"))
+    oldest_seconds = max(0, int((datetime.now(timezone.utc) - (
+        oldest.replace(tzinfo=timezone.utc) if oldest.tzinfo is None else oldest
+    )).total_seconds())) if oldest else None
+    return {"jobs": counts, "failed_24h": recent_failed,
+            "oldest_pending_seconds": oldest_seconds}
 
 
 @router.get("/jobs")

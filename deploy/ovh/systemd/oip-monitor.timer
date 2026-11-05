@@ -1,0 +1,11 @@
+[Unit]
+Description=OIP local health check every 5 minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+AccuracySec=1min
+Unit=oip-monitor.service
+
+[Install]
+WantedBy=timers.target

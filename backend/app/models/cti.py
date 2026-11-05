@@ -32,6 +32,7 @@ class ThreatIndicator(Base):
         UniqueConstraint("observation_id", "indicator_type", "public_reference", name="uq_indicator_observation_kind_ref"),
         Index("ix_threat_indicator_source_created", "source_id", "created_at"),
         Index("ix_threat_indicator_type", "indicator_type", "created_at"),
+        Index("ix_indicator_reference_review", "indicator_type", "public_reference", "review_status"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -43,4 +44,35 @@ class ThreatIndicator(Base):
     confidence: Mapped[int] = mapped_column(Integer, nullable=False)
     evidence_codes: Mapped[list] = mapped_column(JSON, nullable=False)
     ruleset_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    # Analyst triage describes a documented public reference, never confirms an allegation.
+    review_status: Mapped[str] = mapped_column(String(24), nullable=False, default="PENDING", server_default="PENDING")
+    analyst_priority: Mapped[str] = mapped_column(String(16), nullable=False, default="UNASSESSED", server_default="UNASSESSED")
+    review_reason: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    reviewed_at: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class IocCandidate(Base):
+    """Reviewable IOC *mentions*, deliberately separate from CTI alert signals."""
+    __tablename__ = "ioc_candidates"
+    __table_args__ = (
+        UniqueConstraint("observation_id", "indicator_type", "normalized_value",
+                         name="uq_ioc_candidate_observation_type_value"),
+        Index("ix_ioc_candidate_source_created", "source_id", "created_at"),
+        Index("ix_ioc_candidate_review", "review_status", "created_at"),
+        Index("ix_ioc_candidate_type_value_review", "indicator_type", "normalized_value", "review_status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    observation_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("source_observations.id"), nullable=False)
+    source_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("onion_sources.id"), nullable=False)
+    indicator_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    normalized_value: Mapped[str] = mapped_column(String(253), nullable=False)
+    confidence: Mapped[int] = mapped_column(Integer, nullable=False)
+    evidence_codes: Mapped[list] = mapped_column(JSON, nullable=False)
+    ruleset_version: Mapped[str] = mapped_column(String(40), nullable=False)
+    review_status: Mapped[str] = mapped_column(String(24), nullable=False, default="PENDING", server_default="PENDING")
+    analyst_priority: Mapped[str] = mapped_column(String(16), nullable=False, default="UNASSESSED", server_default="UNASSESSED")
+    review_reason: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    reviewed_at: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
