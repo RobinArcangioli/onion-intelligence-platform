@@ -76,10 +76,11 @@ propriétaire. Les délais d'infrastructure dépendent des accès futurs autoris
 | S01 / P0 / S | Identifier la copie, lire passation et guides, comparer à `main`, inspecter jobs et logs CI | SHA exact, état propre initial, provenance et limites inscrits dans l'état ; distinction CI/local/OVH | VALIDÉ pour l'inspection initiale |
 | S02 / P0 / S | Centraliser les deux références, remplacer le README chronologique, baliser les statuts hérités, conserver le manifeste source | Deux entrées principales ; aucun guide balisé pris pour photo actuelle ; liens et manifeste courant vérifiés | VALIDÉ pour la livraison locale documentaire |
 | S03 / P0 / S | Corriger uniquement l'isolation du test syntaxique Nginx (`test_m7a_nginx_policy.py`) ; après S01 | PID et chemins requis sous répertoire temporaire ; `nginx -t` non-root réussit ; 23 politiques passent avec Nginx présent, aucun skip ; config applicative inchangée | VALIDÉ localement, Nginx 1.24.0, 23/23 |
-| S04 / P0 / S | Rejouer les quatre jobs sur le commit de stabilisation ; après S02/S03 | Backend et politiques verts, frontend 14 tests + build verts, PG M4-B et M7-C sans skip ; SHA/run consignés, syntaxe shell/compile effectivement exécutée | EN COURS : correction locale validée, publication et CI suivantes |
-| S05 / P0 / S | Revue des deux références et clôture des décisions de périmètre ; après S02/S04 ; D10–D13 actées | Propriétaire valide périmètre ; commit de référence retenu et CI associée ; `main`/tag éventuel sur instruction explicite | À FAIRE après CI verte et revue des références |
+| S04 / P0 / S | Rejouer les quatre jobs sur le commit de stabilisation ; après S02/S03 | Backend et politiques verts, frontend 14 tests + build verts, PG M4-B et M7-C sans skip ; SHA/run consignés, syntaxe shell/compile effectivement exécutée | VALIDÉ : commit `244437b…`, run `42018926671`, quatre jobs verts |
+| S05 / P0 / S | Revue des deux références et clôture des décisions de périmètre ; après S02/S04 ; D10–D13 actées | Propriétaire valide périmètre ; commit de référence retenu et CI associée ; `main`/tag éventuel sur instruction explicite | VALIDÉ pour la référence technique de branche ; aucune promotion main/tag |
 
-La correction S03 est connue grâce au log : `open() /run/nginx.pid failed (13:
+La correction S03 a été validée localement et par le run `42018926671`.
+Le défaut initial était identifié dans le log : `open() /run/nginx.pid failed (13:
 Permission denied)` après « syntax is ok ». Ne pas installer le test en root,
 le sauter ou supprimer son assertion pour obtenir un faux vert.
 
@@ -268,12 +269,16 @@ prérequis MVP. Les remettre dans le périmètre exigerait une nouvelle décisio
 
 ## 8. Clôture de la stabilisation et prochaine action
 
-La livraison documentaire locale fournit les deux références et la suppression
-du bruit de navigation. La stabilisation complète reste ouverte tant que S03/S04
-n’ont pas une CI verte et que la revue des références n’est pas clôturée.
-Les décisions de parcours et de visibilité D10–D13 sont désormais actées.
-**S03 est validée localement ; S04 (publication et CI complète) est l’étape active.** Après validation des références,
-commencer MVP-01 puis MVP-01V conformément au périmètre de vitrine validé.
-Aucun arbitrage de parcours ou de champs publics n’est encore en attente ;
-les détails de conception (unités, libellés et contenu des versions de rapport)
-seront documentés dans ces incréments avant leur mise en service.
+La stabilisation technique est validée : **S01–S05 terminées pour la branche de
+travail**, sans promotion sur `main` ni création de tag. La référence technique est
+**`244437baf6d3c8fe8656b50c17a45e09b07a81f6`**, validée par les quatre jobs du
+[run 42018926671](https://github.com/RobinArcangioli/onion-intelligence-platform/actions/runs/42018926671).
+Les résultats détaillés et leurs limites figurent dans l’état de référence.
+Le commit documentaire suivant consigne cette preuve sans modifier l’application.
+
+Les décisions de parcours et de visibilité D10–D13 sont actées. La prochaine
+étape fonctionnelle est **MVP-01**, puis **MVP-01V** : admin par mot de passe,
+séparation des API, vitrine des métadonnées et rapports publiés. Les détails de
+conception (unités, libellés et contenu des versions de rapport) seront documentés
+dans ces incréments avant mise en service. Aucune activation ou intervention OVH
+n’est réalisée par cette stabilisation.

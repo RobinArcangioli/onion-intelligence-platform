@@ -42,7 +42,8 @@ restent des contraintes du produit. Un signal CTI ne prouve pas une compromissio
 Au commit de référence, la [CI du 5 novembre](https://github.com/RobinArcangioli/onion-intelligence-platform/actions/runs/42012518293)
 est historiquement **rouge** : le test Nginx échoue sur la permission de
 `/run/nginx.pid`. La correction de stabilisation passe localement les 23 tests
-de politique avec Nginx présent ; sa validation CI complète est en cours.
+de politique avec Nginx présent. Le commit stabilisé **`244437b`** est validé par
+les **quatre jobs verts** du [run 42018926671](https://github.com/RobinArcangioli/onion-intelligence-platform/actions/runs/42018926671).
 Backend, frontend et recettes PostgreSQL 17 passent ; portée et chiffres exacts
 dans l'état de référence. La recette de concurrence des workers et la qualification
 de l'exploitation durable restent à faire. Le [dernier état OVH attesté](docs/handoff/OVH_STATE.md)

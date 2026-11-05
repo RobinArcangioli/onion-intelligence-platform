@@ -1,7 +1,7 @@
 # OIP — État de référence
 
 Révision documentaire : 2026-11-05, Europe/Paris. Statut : référence de
-stabilisation, décisions MVP actées ; validation CI de la correction en cours. Les faits ci-dessous sont séparés
+stabilisation ; décisions MVP actées et correction validée par les quatre jobs CI. Les faits ci-dessous sont séparés
 des décisions futures consignées dans [la roadmap](ROADMAP_ET_DECISIONS.md).
 
 ## 1. Règle de lecture et périmètre
@@ -29,7 +29,8 @@ production. Les archives M7-C2/C3/C4 ne sont pas intégrées.
 |---|---|
 | Dépôt | [RobinArcangioli/onion-intelligence-platform](https://github.com/RobinArcangioli/onion-intelligence-platform) |
 | Branche | `feature/m7c1-1-codex-handoff-20261105` |
-| Commit inspecté et HEAD au clonage | `44101c593d19f0ee8122bf3d7d10607fde541a12` |
+| Commit de provenance inspecté et HEAD au clonage | `44101c593d19f0ee8122bf3d7d10607fde541a12` |
+| Référence technique stabilisée | `244437baf6d3c8fe8656b50c17a45e09b07a81f6`, CI verte du 5 novembre ; suivi documentaire ultérieur sans changement applicatif |
 | Parent / `origin/main` au clonage | `ff7e469fb6f991ee6f69e76754a65abf64d335f8` |
 | Arbre du commit de référence | `e0577bcc003704a946d1b595c960ced23502bc3a` |
 | Historique récupéré | 12 commits, neuf tags ; branche de reprise un commit devant `main` |
@@ -119,7 +120,7 @@ charge réelle ou sur un serveur réel.
 | Qualité / M5-C | Rubrique explicable versionnée, fraîcheur, cooccurrences CVE/IOC acceptées sur une même observation, audit expurgé | Heuristique non calibrée ; cooccurrence ≠ corroboration indépendante |
 | Dossiers / M6-A/B | Un dossier par alerte, assignation, transitions, priorité, notes structurées bornées, contrôle optimiste de version | Notes en clair en base, filtrage partiel ; lecture commune à ANALYST/ADMIN, aucune confidentialité par dossier |
 | Opérations / M6-C | Politiques ADMIN, brouillons locaux `NOT_SENT`, agrégats JSON/CSV minimisés | Aucun canal email/webhook, aucun destinataire ni envoi ; doublons/politiques sous concurrence PG à compléter |
-| HTTP / M7-A | Allowlist Host, CSP/no-store/autres en-têtes, docs masquées au gateway, contrôle auth/RBAC des routes | Test syntaxique Nginx rouge en CI pour permission PID ; pas une recette HTTP navigateur complète |
+| HTTP / M7-A | Allowlist Host, CSP/no-store/autres en-têtes, docs masquées au gateway, contrôle auth/RBAC des routes | Échec historique de permission PID corrigé et validé en CI de stabilisation ; pas une recette HTTP navigateur complète |
 | Identités / M7-B/B2 | Jetons nominatifs expirants/révocables, empreinte SHA-256, rotation atomique, quota cinq actifs, protection dernier ADMIN, inventaire personnel | Secrets porteurs, pas de MFA/OIDC/session cookie ; courses rotation/révocation encore à couvrir en PG |
 | Recette / M7-C1.1 | Lanceur jetable local, refus DSN dangereux, migrations complètes et trois courses testées en PG | Quatre tests PG M7-C, pas une qualification de tous les scénarios concurrents |
 | Exploitation / M1 | Profil privé, prévol, moniteur, scripts sauvegarde/transfert/restauration, unités systemd opt-in | Le moniteur refuse les services Tor/collecte actifs ; automatisation sauvegardes historiquement reportée |
@@ -176,6 +177,28 @@ Absents de ce workflow : Playwright, scan de dépendances en ligne, Gitleaks de
 l'historique, build/recette des images complètes, tests réseau réels et restauration
 hors site. Le contrôle d'index n'est pas un audit historique.
 
+### CI de stabilisation — preuve verte
+
+Commit **`244437baf6d3c8fe8656b50c17a45e09b07a81f6`**, publié sur la branche de
+travail après autorisation du propriétaire. [Run 42018926671, tentative 1](https://github.com/RobinArcangioli/onion-intelligence-platform/actions/runs/42018926671),
+5 novembre 2026, 11:26:06–11:27:04 UTC (12:26:06–12:27:04 à Paris),
+conclusion globale **SUCCESS**. Les quatre jobs et leurs logs ont été inspectés :
+
+| Job | Résultat au commit stabilisé |
+|---|---|
+| Backend et politiques OVH | Audit index PASS ; backend **340 passed, 5 skipped**, un avertissement ; politiques **23/23**, Nginx présent, zéro ignoré ; étape syntaxe de tous les scripts et compile Python effectivement réussie |
+| Frontend | **14 tests réussis**, zéro ignoré ; installation verrouillée, TypeScript et build Vite réussis |
+| PostgreSQL M4-B | **1 test réussi**, zéro ignoré |
+| PostgreSQL M7-C | **16 tests réussis**, zéro ignoré |
+
+Les limites de couverture du run initial restent applicables : les cinq skips
+du job backend sont les tests PG couverts par les jobs dédiés ; pas de recette
+multiworkers, Playwright, scan de dépendances, réseau cible ou restauration réelle.
+La correction ne touche ni aux routes métier, ni aux migrations, ni à la
+configuration Nginx applicative. `main` et les tags restent inchangés. Le suivi
+documentaire de cette preuve est un commit distinct ; ne pas lui attribuer le
+SHA du commit technique ci-dessus.
+
 ### Preuves historiques de fabrication
 
 La [passation de provenance](handoff/PROVENANCE_AND_AUDIT.md) atteste : manifeste
@@ -212,7 +235,8 @@ binaire Nginx Ubuntu 1.24.0 extrait sous `/tmp`. La suite corrigée retourne
 **23 tests réussis, zéro ignoré**, hors sandbox pour permettre les vérifications
 de sockets de `nginx -t`, sans privilège root ni démarrage de service. La
 configuration Nginx applicative reste inchangée. La validation distante du commit
-de stabilisation sera distinguée du run initial rouge `44101c5…`.
+de stabilisation est le run vert `42018926671`, distinct du run initial rouge
+`42012518293` sur `44101c5…`.
 
 ## 6. Dernier état OVH attesté et inconnues
 
