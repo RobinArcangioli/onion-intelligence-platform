@@ -17,7 +17,8 @@ ni aux informations sensibles. Les sauvegardes automatiques et leur restauration
 deviennent des prérequis d’exploitation durable.
 
 Ces choix viennent des réponses explicites du propriétaire du 5 novembre 2026.
-Ils ne constituent pas une autorisation de connexion ou de déploiement OVH.
+L’ouverture ultérieure d’un tunnel SSH a été autorisée séparément pour consulter
+l’existant ; aucune autorisation de déploiement ou de migration OVH n’en découle.
 La stabilisation présente centralise les références et nettoie leur navigation ;
 la séparation de l’accès visiteur, la vitrine et la préparation du mode permanent
 sont les incréments suivants, avec revue de leur périmètre ci-dessous.
@@ -32,7 +33,7 @@ sont les incréments suivants, avec revue de leur périmètre ci-dessous.
 | D04 | Collecte manuelle permanente supervisée prioritaire | Acté, réponse du propriétaire 2026-11-05 | Worker disponible en continu, sources explicitement autorisées, concurrence bornée, stop ; scheduler désactivé |
 | D05 | Retirer toute authentification applicative du MVP | REMPLACÉ par D10, précision ultérieure du propriétaire le 2026-11-05 | Ne plus utiliser cette première formulation comme cible ; l’administration reste authentifiée |
 | D06 | Remettre les sauvegardes automatiques dans les prérequis d'exploitation durable | Acté, réponse du propriétaire 2026-11-05 | Conception, restauration réelle et supervision avant exploitation durable ; pas d'activation distante implicite |
-| D07 | Aucun accès OVH, déploiement ou activation de collecte pendant cette reprise | Acté, périmètre de passation | Préparer et tester localement ; intervention distante sur instruction explicite ultérieure |
+| D07 | Aucun déploiement, migration ou activation de collecte OVH pendant le développement local | Acté, passation ; tunnel en lecture autorisé ultérieurement par le propriétaire | Tunnel vers l’existant seulement ; toute intervention modifiant OVH nécessite une instruction explicite distincte |
 | D08 | Sources autorisées, minimisation, aucune navigation automatique, pas de retry automatique | Contrats existants maintenus | Simplifier les accès ne retire pas les contrôles de sources, limites et transitions |
 | D09 | Conserver le profil réseau privé existant pendant la stabilisation | Maintien de l’existant ; cible web commune précisée dans D12 | La conception de la vitrine ne modifie aucun port ni accès distant pendant cette étape |
 | D10 | Conserver le jeton API individuel existant comme seule authentification ; visiteur limité à la vitrine | Acté, clarification finale du propriétaire 2026-11-05 ; remplace D05 et l’interprétation « nouveau mot de passe » | Connexion et gouvernance des jetons conservées ; aucune interface de choix/modification de mot de passe, aucun remplacement par sessions cookie ; OIDC/MFA hors MVP |
@@ -94,6 +95,8 @@ pas une raison de lancer une suppression large.
 
 ### MVP-01 — Conserver les jetons et séparer l’accès visiteur (P1, M)
 
+**État : implémenté, recette locale validée ; CI/recette PostgreSQL à inspecter.**
+
 Dépend de S05 et D10–D13. La connexion admin existe déjà et convient au MVP :
 **aucune refonte de l’authentification**. Conserver le formulaire de jeton API,
 la transmission `X-API-Key`, le stockage en mémoire React, les rôles et la gestion
@@ -116,6 +119,9 @@ globalement ses attentes 401 par des 200. Aucun nouveau secret ou mécanisme
 persistant navigateur n’est introduit.
 
 ### MVP-01V — Vitrine des dernières veilles (P1, M)
+
+**État : implémenté avec publication de rapports agrégés, recette locale validée ;
+CI/recette PostgreSQL à inspecter. Aucun déploiement OVH.**
 
 Dépend de D11–D13 et de la séparation MVP-01. À la même adresse web que
 l’administration, proposer un petit lien latéral **« accès visiteur »** qui ouvre
@@ -234,7 +240,7 @@ aucun déploiement automatique ni secret d'exploitation dans la CI.
 
 | ID | Dépendances | Travail et critères d'acceptation |
 |---|---|---|
-| OPS-01 / P1 / M | MVP-01 à 06 et MVP-01V | Plan staging/promote/rollback sur schéma `0017`, restauration préalable, vérification de compatibilité applicative ; distinguer rollback image et restauration DB ; ne pas utiliser un downgrade destructif comme sauvegarde |
+| OPS-01 / P1 / M | MVP-01 à 06 et MVP-01V | Plan staging/promote/rollback sur schéma cible `0018` (base historique `0017`), restauration préalable, vérification de compatibilité applicative ; distinguer rollback image et restauration DB ; ne pas utiliser un downgrade destructif comme sauvegarde |
 | OPS-02 / P1 / M | OPS-01 + instruction d'accès distante explicite | Inventaire actuel OVH expurgé, vérification du périmètre de l'autorisation fournisseur déclaré historiquement, revue IPv4/IPv6/DNS/SOCKS/ports, tests stop/absence de fallback sur l'hôte autorisé ; résultats datés, aucune revendication d'anonymat absolu |
 | OPS-03 / P1 / S | OPS-02 + sauvegarde/restauration validées + GO explicite | Pilote de durée convenue, un worker initialement, concurrence réglée et sources de démonstration autorisées ; scheduler inactif ; preuves des transitions, arrêt et reprise ; seuils et incidents suivis |
 | OPS-04 / P1 / S | OPS-03 | Recette opérateur, limites connues, SLO modestes mesurés, coûts et runbooks ; deux références actualisées avec SHA/run/date ; validation MVP par le propriétaire |
@@ -273,10 +279,11 @@ travail**, sans promotion sur `main` ni création de tag. La référence techniq
 Les résultats détaillés et leurs limites figurent dans l’état de référence.
 Le commit documentaire suivant consigne cette preuve sans modifier l’application.
 
-Les décisions de parcours et de visibilité D10–D13 sont actées. La prochaine
-étape fonctionnelle est **MVP-01**, puis **MVP-01V** : conserver la connexion
-par jeton existante, séparer les API publiques/internes et ajouter la vitrine
-des métadonnées et rapports publiés. Les détails de
-conception (unités, libellés et contenu des versions de rapport) seront documentés
-dans ces incréments avant mise en service. Aucune activation ou intervention OVH
+Les décisions de parcours et de visibilité D10–D13 sont actées. **MVP-01 et MVP-01V sont implémentés et validés localement** sur
+`feature/mvp-visitor-public-boundary`, issue de `cd7c343`. La CI doit qualifier la
+migration `0018` et l’unicité de publication concurrente PostgreSQL avant clôture.
+La recette manuelle synthétique est disponible via `scripts/serve-visitor-demo.py`
+(port local 8010), distinct du tunnel OVH 8001. Après qualification, la prochaine
+étape technique sera **MVP-02** (file/worker PostgreSQL), puis MVP-03/04 selon les
+dépendances ; une validation opérateur de la vitrine reste à recueillir. Aucune activation ou intervention OVH
 n’est réalisée par cette stabilisation.

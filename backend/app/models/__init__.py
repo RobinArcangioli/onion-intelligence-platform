@@ -16,3 +16,5 @@ from .case import AnalystCase, AnalystCaseEvent, AnalystCaseNote
 __all__ += ["AnalystCase", "AnalystCaseEvent", "AnalystCaseNote"]
 from .notification import CaseNotificationPolicy, CaseNotificationDraft
 __all__ += ["CaseNotificationPolicy", "CaseNotificationDraft"]
+from .publication import ReportPublication
+__all__ += ["ReportPublication"]

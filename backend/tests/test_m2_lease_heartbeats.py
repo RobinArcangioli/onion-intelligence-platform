@@ -260,7 +260,7 @@ def test_sqlite_migration_preserves_existing_job_rows_and_downgrades(tmp_path):
                   {"id": "22222222222222222222222222222222", "sid": "11111111111111111111111111111111"})
     alembic("upgrade", "head")
     with engine.connect() as c:
-        assert c.scalar(text("SELECT version_num FROM alembic_version")) == "0017_case_notification_drafts"
+        assert c.scalar(text("SELECT version_num FROM alembic_version")) == "0018_public_report_publications"
         assert c.scalar(text("SELECT status FROM crawl_jobs")) == "PENDING"
         assert c.scalar(text("SELECT lease_token FROM crawl_jobs")) is None
     alembic("downgrade", "0008_manual_queue")

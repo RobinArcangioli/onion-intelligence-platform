@@ -23,7 +23,7 @@ L'inspection porte sur la reprise M7-C1.1 : elle n'est ni un audit exhaustif de
 sécurité, ni une étude comparative des outils CTI du marché, ni une recette de
 production. Les archives M7-C2/C3/C4 ne sont pas intégrées.
 
-## 2. Identité exacte de la base
+## 2. Identité exacte de la base historique
 
 | Élément | Référence vérifiée |
 |---|---|
@@ -38,7 +38,7 @@ production. Les archives M7-C2/C3/C4 ne sont pas intégrées.
 | Index initial | 243 fichiers, état de travail propre |
 | Version backend / frontend | `1.0.0rc2` / `1.0.0-rc.2` |
 | Jalon de livraison | M7-C1.1, distinct d'une version semver et du tag RC2 historique |
-| Tête Alembic du code | `0017_case_notification_drafts` ; chaîne `0001`–`0017` |
+| Tête Alembic de la base M7-C1.1 | `0017_case_notification_drafts` ; chaîne `0001`–`0017` |
 
 Le commit de reprise importe un paquet complet : les jalons M2–M7 ne sont pas
 chacun un commit distinct dans cet historique public. Ne pas inventer une
@@ -56,7 +56,8 @@ Le manifeste original est conservé à l'identique dans
 le commit de référence. Après le nettoyage documentaire, le manifeste racine
 est celui des sources de la copie stabilisée ; il ne doit pas être présenté
 comme une vérification inchangée du paquet original. Les nouveaux documents
-et les guides balisés expliquent les écarts ; le code applicatif n'est pas modifié.
+et les guides balisés expliquent les écarts documentaires initiaux. Le présent
+incrément visiteur constitue ensuite une modification applicative distincte.
 
 ### Cible MVP décidée pendant la reprise
 
@@ -69,15 +70,78 @@ Cette précision remplace les interprétations de retrait complet de l’authent
 ou de remplacement des jetons par une connexion par mot de passe. La priorité reste
 la collecte manuelle permanente supervisée, scheduler désactivé, avec sauvegardes
 automatiques comme prérequis d’exploitation durable. Le code conserve son
-mécanisme de jetons/RBAC, qui correspond au choix retenu. Seuls l’accès visiteur,
-la séparation de ses données et la publication publique restent à implémenter.
+mécanisme de jetons/RBAC, qui correspond au choix retenu. L’accès visiteur,
+la séparation de ses données et la publication publique sont implémentés sur la
+branche active, en cours de qualification avant tout déploiement.
 Le visiteur utilise la même adresse web que l’admin, via un petit lien latéral
 « accès visiteur », sans connexion. Par défaut, date, statut, volumes et noms
 des sources des dernières veilles sont publics, **sans adresse Onion**. L’admin
 peut en plus publier explicitement certains rapports ; les autres restent internes.
-Ces choix D11–D13 sont actés. Les API de vitrine et la publication ne sont pas
-encore implémentées ; le rôle `VIEWER` existant ne les remplace pas.
+Ces choix D11–D13 sont actés. Les API de vitrine et la publication sont
+implémentées dans l’incrément actif ; le rôle `VIEWER` ne devient pas anonyme.
 La décision de licence est reportée après le MVP et exclue de la roadmap.
+
+### Incrément actif — accès visiteur et frontière publique
+
+Branche **`feature/mvp-visitor-public-boundary`**, issue de `cd7c343` (clarification
+conservant les jetons), elle-même descendante de la base stabilisée. Cet incrément
+implémente MVP-01 et MVP-01V, sans déploiement OVH. La tête Alembic de cette
+branche est **`0018_public_report_publications`** ; les preuves M7-C1.1 ci-dessous
+restent attachées à leur code `0017` historique.
+
+- L’écran de connexion conserve le jeton individuel et ajoute un lien latéral
+  **Accès visiteur**. La vue anonyme est en lecture seule, sans clé, cookie ni
+  persistance navigateur. Elle ne réutilise pas les listes internes.
+- API publiques GET uniquement sous **`/api/public/v1`** : `/activity`, `/reports`
+  et `/reports/{publication_id}`. Réponses définies par listes explicites de champs,
+  pagination 1–50, offset 0–10 000, `Cache-Control: no-store`.
+- Activité : collectes **COMPLETED/FAILED** de sources actives, non supprimées et
+  approuvées ; exclusion des observations en quarantaine. Date de fin, ou date de
+  création si elle manque ; nom de source ; statut ; octets reçus et caractères
+  extraits pour une réussite, valeurs absentes pour un échec. Aucun identifiant
+  interne, adresse, titre, extrait, détail d’erreur ou donnée de bail. Les noms
+  contenant une adresse Onion/URL, un email ou un marqueur de secret reconnu sont
+  masqués. Ce filtre ne remplace pas une revue des noms, désormais publics.
+- Rapports : seules les publications explicites sont visibles. L’admin ouvre
+  **Rapports → Vitrine**, examine période et cinq compteurs (observations,
+  découvertes, classifications, mentions CTI, alertes), puis publie la projection
+  **`PUBLIC_TOTALS_V1`**. Ni lignes détaillées, ni identifiants source/observation,
+  notes, IOC, texte, noms d’opérateurs ou données d’audit ne sont copiés.
+- Publication : version publique à identifiant distinct, contenu figé et empreinte
+  d’aperçu vérifiée avant écriture. Verrou sur le rapport et index unique partiel
+  empêchent deux versions publiques actives. Dépublication ADMIN : l’URL/API
+  devient 404 et la version disparaît de la liste ; une nouvelle publication
+  reçoit un nouvel identifiant. Les rapports internes restent intacts et privés.
+- Les routes internes **`/api/v1` restent toutes authentifiées** ; publication,
+  aperçu et retrait exigent ADMIN. Les rôles/jetons et leur gouvernance restent
+  inchangés. Le moniteur continue d’exiger le refus anonyme des sources internes.
+
+La migration `0018` ajoute une table dédiée ; aucun ancien rapport n’est publié
+implicitement. Sa rétrogradation supprime les versions publiques : uniquement
+sur base jetable, jamais comme stratégie de récupération. Le démarrage d’une
+image API avec ce code lancerait cette migration ; aucune mise à jour OVH n’est
+réalisée ou autorisée par la livraison du code seul.
+
+**Validation locale de l’incrément :** backend **362 réussites / six skips PG**
+sans DSN hérité ; tests ciblés de fuite, refus de rôle, publication/retrait et
+migration SQLite jetable ; frontend quatre fichiers de tests unitaires réussis
+sur Node 18 et build TypeScript/Vite réussi ; **trois scénarios Playwright réels**
+sur serveur local synthétique ; **23 politiques OVH réussies**, Nginx présent.
+Les contrôles d’inventaire RBAC ont été renforcés pour parcourir les contextes de
+routes effectifs de FastAPI, avec garde contre une liste vide : l’ancienne
+introspection pouvait passer sans examiner les routes sur la version installée.
+Le job frontend inclut désormais ces trois scénarios navigateur, sur Ubuntu 24.04
+pris en charge par les dépendances Playwright installées. Le manifeste courant
+couvre **261 fichiers sources**, avec **262 chemins** à l’index (manifeste inclus).
+La CI PostgreSQL rejouera les migrations et la concurrence de publication réelle ;
+son résultat sera consigné après inspection, sans le présumer acquis.
+
+Recette manuelle **synthétique** reproductible, après build frontend et installation
+des dépendances backend : `.venv/bin/python scripts/serve-visitor-demo.py`, adresse
+`http://127.0.0.1:8010`. Le script refuse tout héritage `OIP_*`, utilise une base
+SQLite temporaire distincte et une identité de fixture fixe, jamais un jeton réel.
+Il ne contacte pas OVH ni Tor. Le tunnel `127.0.0.1:8001` reste distinct et montre
+la version réellement déployée, sans cet incrément.
 
 ## 3. Architecture présente
 
@@ -226,7 +290,8 @@ références centrales et la conservation du manifeste source, ainsi que la
 correction du test Nginx et du contrôle de syntaxe CI. Le contrôle shell utilise
 désormais une boucle vérifiant chaque script, au lieu de `bash -n` avec un glob
 qui ne vérifiait que le premier fichier.
-Contrôles de la livraison documentaire : manifeste courant **245 entrées PASS**,
+Contrôles de la livraison documentaire initiale : manifeste de stabilisation
+**245 entrées PASS** (avant l’incrément visiteur),
 **72 liens Markdown locaux vérifiés, aucun cassé**, `git diff --check` PASS,
 syntaxe de chaque script shell vérifiée individuellement et syntaxe Python OVH
 PASS. Audit de l’arbre candidat via un index temporaire : **246 chemins PASS** ;
@@ -246,7 +311,12 @@ de stabilisation est le run vert `42018926671`, distinct du run initial rouge
 
 Source : [OVH_STATE.md](handoff/OVH_STATE.md), synthèse du 5 novembre d'éléments
 opérateur dont les journaux du pilote portent la date du 25 octobre, fuseau non
-établi. **Aucune connexion OVH effectuée pendant cette reprise.**
+établi. **Aucune connexion OVH pendant l’audit initial.** Après instruction explicite
+ultérieure du propriétaire, un tunnel SSH en lecture a été ouvert vers l’interface
+existante sur le port local 8001 : page OIP, santé et disponibilité HTTP 200,
+sources anonymes HTTP 401. Aucun déploiement, migration ou contrôle de données
+métier n’a été effectué. Cette vérification ciblée ne requalifie pas l’ensemble
+des services, du réseau ou des sauvegardes historiques.
 
 - Mise à niveau attestée de `0008` vers `0017`, manifeste et smoke tests PASS ;
   release du pilote `/opt/oip/releases/m7c1-1`.
@@ -278,7 +348,9 @@ opérateur dont les journaux du pilote portent la date du 25 octobre, fuseau non
 | Auditeur historique recommandant une nouvelle racine | Conseil générique contraire à la stratégie acceptée ; conserver historique et références, ne pas l'appliquer |
 
 Les migrations, tests historiques, scripts utiles, branches, tags et archives de
-passation sont conservés. Aucun nettoyage de base, suppression d'archive locale,
-import de M7-C2/C3/C4, push, déploiement, activation Tor/worker/scheduler ou lecture
-de secret/donnée réelle n'est réalisé. Pour les choix et la suite, voir la
+passation sont conservés. Aucun nettoyage de base, suppression d’archive locale, import de M7-C2/C3/C4,
+déploiement, activation Tor/worker/scheduler ou lecture de secret/donnée réelle
+n’est réalisé. Les commits sources/documentaires sont publiés sur les branches
+de travail après audits ; le seul accès OVH ultérieur est le tunnel autorisé décrit
+ci-dessus. Pour les choix et la suite, voir la
 [roadmap et le registre des décisions](ROADMAP_ET_DECISIONS.md).

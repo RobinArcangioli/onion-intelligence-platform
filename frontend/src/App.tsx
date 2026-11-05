@@ -8,6 +8,7 @@ import { Overview, Sources, Discoveries, Threats, Watchlists, Alerts, Reports } 
 import { ObservationExplorer } from './components/ObservationExplorer';
 import { CaseDesk } from './components/CaseDesk';
 import { CaseOperations } from './components/CaseOperations';
+import { VisitorView } from './components/VisitorView';
 import { AccessInventory } from './components/AccessInventory';
 
 type Section = 'overview'|'sources'|'observations'|'discoveries'|'intelligence'|'watchlists'|'alerts'|'cases'|'operations'|'reports'|'access';
@@ -26,7 +27,7 @@ const navigation: {id: Section; label: string; icon: IconName; group: string}[] 
 ];
 const pageTitles: Record<Section,string> = {overview:'Vue générale',sources:'Sources Onion',observations:'Observations',discoveries:'Découvertes',intelligence:'Intelligence CTI',watchlists:'Watchlists',alerts:'Alertes',cases:'Dossiers',operations:'Opérations',reports:'Rapports',access:'Mes accès'};
 
-function Login({onReady}: {onReady:(key:string,identity:Identity)=>void}) {
+function Login({onReady,onVisitor}: {onReady:(key:string,identity:Identity)=>void;onVisitor:()=>void}) {
   const [key, setKey] = useState('');
   const [busy,setBusy] = useState(false);
   const [error,setError] = useState('');
@@ -45,11 +46,13 @@ function Login({onReady}: {onReady:(key:string,identity:Identity)=>void}) {
     <form onSubmit={connect}><label htmlFor="key">CLÉ API</label><input id="key" type="password" autoComplete="off" spellCheck={false} value={key} onChange={e=>setKey(e.target.value)} placeholder="Saisir la clé API OIP" minLength={32} required/>
       {error && <p className="form-error" role="alert">{error}</p>}
       <button className="btn btn-primary login-submit" disabled={busy||key.trim().length<32}>{busy?'Vérification…':'Accéder au dashboard'}<Icon name="arrow"/></button></form>
+    <button className="visitor-entry" onClick={onVisitor}><Icon name="eye" size={16}/> Accès visiteur <Icon name="arrow" size={15}/></button>
     <p className="login-foot"><Icon name="shield" size={14}/> Clé conservée en mémoire uniquement · aucune persistance navigateur</p>
   </div><div className="login-bottom">OIP / OPERATOR CONSOLE <span>V1.0.0 RC2</span></div></main>;
 }
 
 export default function App() {
+  const [visitor,setVisitor]=useState(false);
   const [token,setToken]=useState('');
   const [identity,setIdentity]=useState<Identity|null>(null);
   const [section,setSection]=useState<Section>('overview');
@@ -59,7 +62,8 @@ export default function App() {
   function navigate(next:Section) {setSection(next);setNavOpen(false);setNotice(null);}
   function notify(text:string,kind:'success'|'error'='success') {setNotice({text,kind});}
   function disconnect() {setToken('');setIdentity(null);setNotice(null);setSection('overview');}
-  if (!token) return <Login onReady={(key,who)=>{setToken(key);setIdentity(who);}}/>;
+  if (visitor) return <VisitorView onAdmin={()=>setVisitor(false)}/>;
+  if (!token) return <Login onVisitor={()=>{disconnect();setVisitor(true);}} onReady={(key,who)=>{setToken(key);setIdentity(who);}}/>;
   const props={token,refresh,onNotice:notify};
   return <div className="shell">
     {navOpen && <button className="nav-backdrop" aria-label="Fermer la navigation" onClick={()=>setNavOpen(false)}/>}
@@ -90,7 +94,7 @@ export default function App() {
         {section==='alerts'&&<Alerts {...props}/>}
         {section==='cases'&&identity?.role!=='VIEWER'&&<CaseDesk {...props}/>}
         {section==='operations'&&identity?.role!=='VIEWER'&&<CaseOperations {...props} role={identity?.role ?? 'VIEWER'}/>}
-        {section==='reports'&&<Reports {...props}/>}
+        {section==='reports'&&<Reports {...props} role={identity?.role ?? 'VIEWER'}/>}
         {section==='access'&&<AccessInventory token={token} refresh={refresh}/>}
       </div>
       <footer className="page-footer"><span>OIP · VEILLE DOCUMENTAIRE CONTRÔLÉE</span><span>Aucune allégation n'est une preuve de compromission.</span></footer>

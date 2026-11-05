@@ -5,6 +5,7 @@ import { canCollectNow, jobLabel } from './lib/manualCollection';
 import type { Alert, Audit, Classification, Correlation, Discovery, Indicator, IocCandidate, IocCorrelation, MentionQuality, CveIocLink, CtiReviewEvent, Job, Observation, Page, PublicReference, PublicReferenceEvidence, Report, Rule, Source, Watchlist } from './lib/types';
 import { APPROVAL, NOTE, dateTime, limit, localDateInput, priorDays, query, readableError, shortNumber } from './lib/util';
 import { DateCell, Empty, Icon, Mono, PageHead, Pager, Panel, Score, Status } from './components/ui';
+import { ReportPublication } from './components/ReportPublication';
 import { ScheduleEditor } from './components/ScheduleEditor';
 
 type Shared = {token:string;refresh:number;onNotice:(text:string,kind?:'success'|'error')=>void};
@@ -147,7 +148,7 @@ export function Sources({token,refresh,onNotice,role}:Shared & {role:string}) {
     </Panel>
     {scheduleSource&&<ScheduleEditor token={token} sourceId={scheduleSource.id} sourceName={scheduleSource.name} onClose={()=>setScheduleSource(null)} onNotice={onNotice}/>}
     {showForm&&<div className="modal-shade" onMouseDown={e=>{if(e.target===e.currentTarget)resetForm();}}><section className="modal" role="dialog" aria-modal="true" aria-label={edit?'Modifier la source':'Ajouter une source'}><div className="modal-head"><div><p className="eyebrow">SOURCE REGISTRY</p><h2>{edit?'Modifier la source':'Nouvelle source Onion'}</h2></div><button className="icon-button" aria-label="Fermer" onClick={resetForm}><Icon name="x"/></button></div>
-      <form onSubmit={submit} className="form-grid"><label>Nom<input required maxLength={160} value={name} onChange={e=>setName(e.target.value)} placeholder="Nom de la source"/></label>{!edit&&<label>Adresse Onion v3<input required value={url} onChange={e=>setUrl(e.target.value)} placeholder="http://...onion/" spellCheck={false}/></label>}
+      <form onSubmit={submit} className="form-grid"><label>Nom (visible dans la vitrine)<input required maxLength={160} value={name} onChange={e=>setName(e.target.value)} placeholder="Nom de la source"/></label>{!edit&&<label>Adresse Onion v3<input required value={url} onChange={e=>setUrl(e.target.value)} placeholder="http://...onion/" spellCheck={false}/></label>}
         <label>Description<textarea maxLength={2000} rows={3} value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Description facultative"/></label><label>Priorité<select value={priority} onChange={e=>setPriority(Number(e.target.value))}>{[1,2,3,4,5].map(n=><option key={n} value={n}>P{n}</option>)}</select></label>
         {!edit&&<label className="check-label"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/><span>Je confirme l'autorisation de consultation de cette source. La collecte restera désactivée par défaut.</span></label>}
         <div className="form-actions"><button type="button" className="btn btn-secondary" onClick={resetForm}>Annuler</button><button disabled={busy||(!edit&&!consent)} className="btn btn-primary" type="submit">{busy?'Enregistrement…':'Enregistrer'}</button></div>
@@ -289,7 +290,7 @@ export function Alerts({token,refresh,onNotice}:Shared){
   </>;
 }
 
-export function Reports({token,refresh,onNotice}:Shared){
+export function Reports({token,refresh,onNotice,role}:Shared & {role:string}){
   const [offset,setOffset]=useState(0);const [seq,setSeq]=useState(0);const [showForm,setShowForm]=useState(false);
   const [from,setFrom]=useState(localDateInput(priorDays(30)));const [to,setTo]=useState(localDateInput(new Date()));const [maxRows,setMaxRows]=useState(100);
   const [source,setSource]=useState('');const [busy,setBusy]=useState(false);
@@ -303,7 +304,7 @@ export function Reports({token,refresh,onNotice}:Shared){
   async function exportReport(item:Report,format:'json'|'csv') {await execute(()=>downloadExport(token,`/api/v1/reports/${item.id}/export?format=${format}`,`oip-report-${item.id}.${format}`),onNotice,'Export téléchargé.',()=>{});}
   return <><PageHead eyebrow="INTELLIGENCE / EXPORTS" title="Rapports CTI" description="Produisez des snapshots documentaires figés au format JSON ou CSV." actions={<button className="btn btn-primary" onClick={()=>setShowForm(true)}><Icon name="plus"/> Générer un rapport</button>}/>
     <Panel title="Rapports archivés" kicker="SNAPSHOT HISTORY" action={<span className="counter">{data.total} rapports</span>}><Failure text={error}/>
-      <TableShell><thead><tr><th>Identifiant</th><th>Source</th><th>Début de période</th><th>Fin de période</th><th>Créé le</th><th>Exports</th></tr></thead><tbody>{data.items.map(r=><tr key={r.id}><td><div className="cell-main"><Mono value={r.id}/><span className="muted small">Snapshot immuable</span></div></td><td>{r.source_id?<Mono value={r.source_id}/>:<span className="category-tag">Toutes sources</span>}</td><td><DateCell value={r.period_start}/></td><td><DateCell value={r.period_end}/></td><td><DateCell value={r.created_at}/></td><td><div className="row-actions"><button className="tiny-btn" onClick={()=>exportReport(r,'json')}><Icon name="download" size={14}/> JSON</button><button className="tiny-btn" onClick={()=>exportReport(r,'csv')}><Icon name="download" size={14}/> CSV</button></div></td></tr>)}{!data.items.length&&tdEmpty(6,loading)}</tbody></TableShell>
+      <TableShell><thead><tr><th>Identifiant</th><th>Source</th><th>Début de période</th><th>Fin de période</th><th>Créé le</th><th>Exports</th></tr></thead><tbody>{data.items.map(r=><tr key={r.id}><td><div className="cell-main"><Mono value={r.id}/><span className="muted small">Snapshot immuable</span></div></td><td>{r.source_id?<Mono value={r.source_id}/>:<span className="category-tag">Toutes sources</span>}</td><td><DateCell value={r.period_start}/></td><td><DateCell value={r.period_end}/></td><td><DateCell value={r.created_at}/></td><td><div className="row-actions"><button className="tiny-btn" onClick={()=>exportReport(r,'json')}><Icon name="download" size={14}/> JSON</button><button className="tiny-btn" onClick={()=>exportReport(r,'csv')}><Icon name="download" size={14}/> CSV</button>{role==='ADMIN'&&<ReportPublication token={token} reportId={r.id} onNotice={onNotice}/>}</div></td></tr>)}{!data.items.length&&tdEmpty(6,loading)}</tbody></TableShell>
       <Pager total={data.total} offset={offset} pageSize={limit} onChange={setOffset}/>
     </Panel>
     <div className="notice-strip"><Icon name="file"/><p>Les rapports contiennent uniquement des métadonnées autorisées. Ils distinguent les observations documentaires des allégations non vérifiées.</p></div>

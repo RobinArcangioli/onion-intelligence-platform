@@ -26,7 +26,7 @@ from app.security.api_key import fingerprint
 
 BACKEND = Path(__file__).resolve().parents[1]
 EXPECTED_DB = "oip_m7c_test"
-REVISION = "0017_case_notification_drafts"
+REVISION = "0018_public_report_publications"
 
 
 def safe_test_dsn(raw: str):
@@ -69,6 +69,13 @@ def pg_factory():
         with engine.connect() as conn:
             assert conn.scalar(text("SELECT version_num FROM alembic_version")) == REVISION
             assert inspect(conn).has_table("case_notification_drafts")
+        with engine.connect() as conn:
+            assert inspect(conn).has_table("report_publications")
+        migrate(dsn, "downgrade", "0017_case_notification_drafts")
+        with engine.connect() as conn:
+            assert not inspect(conn).has_table("report_publications")
+            assert inspect(conn).has_table("case_notification_drafts")
+        migrate(dsn, "upgrade", "head")
         migrate(dsn, "downgrade", "0016_case_triage_notes")
         with engine.connect() as conn:
             assert not inspect(conn).has_table("case_notification_drafts")
@@ -201,3 +208,34 @@ def test_case_version_compare_and_swap_in_postgres(pg_factory):
     with pg_factory() as db:
         row = db.get(AnalystCase, case_id)
         assert row.version == 2 and row.priority in ("HIGH", "LOW")
+
+
+def test_publication_is_unique_under_concurrent_admins(pg_factory):
+    """Two real sessions publish the same reviewed report; only one may win."""
+    from fastapi import HTTPException
+    from app.api.report_publications import PublishRequest, publish
+    from app.models import Report, ReportPublication
+    from app.public_view.projections import payload_digest, project_report
+    with pg_factory() as db:
+        row = Report(period_start=datetime.now(timezone.utc)-timedelta(days=1),
+                     period_end=datetime.now(timezone.utc), snapshot={'totals': {}})
+        db.add(row); db.commit()
+        report_id=row.id
+        digest=payload_digest(project_report(row))
+    barrier=Barrier(2)
+    def submit(actor):
+        with pg_factory() as db:
+            db.info['actor']=actor
+            barrier.wait(timeout=8)
+            try:
+                publish(report_id,PublishRequest(expected_digest=digest),db)
+                return 201
+            except HTTPException as exc:
+                return exc.status_code
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first=pool.submit(submit,'synthetic_admin_a')
+        second=pool.submit(submit,'synthetic_admin_b')
+        assert sorted([first.result(timeout=25),second.result(timeout=25)])==[201,409]
+    with pg_factory() as db:
+        assert db.scalar(select(func.count()).select_from(ReportPublication).where(
+            ReportPublication.report_id==report_id,ReportPublication.is_public.is_(True)))==1

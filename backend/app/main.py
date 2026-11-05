@@ -12,12 +12,17 @@ from app.api.observations import router as observations_router
 from app.api.cases import router as cases_router
 from app.api.case_operations import router as case_operations_router
 
+from app.api.public import router as public_router
+from app.api.report_publications import router as report_publications_router
+
 app = FastAPI(
     title="Onion Intelligence Platform API",
     description="Collecte Tor contrôlée et manuelle, classification hors ligne et signaux CTI non vérifiés.",
     version="1.0.0-rc2",
 )
 app.include_router(health_router)
+app.include_router(public_router)
+app.include_router(report_publications_router)
 app.include_router(sources_router)
 app.include_router(collection_router)
 app.include_router(intelligence_router)

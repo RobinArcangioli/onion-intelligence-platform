@@ -31,7 +31,16 @@ vérifiée sont des prérequis d’exploitation durable.
 sans connexion. Les dernières veilles affichent publiquement **date, statut,
 volumes et noms des sources, sans adresse Onion**. L’admin peut également publier
 explicitement certains rapports ; les autres informations restent internes.
-Ces décisions sont actées dans la roadmap, mais ne sont pas encore implémentées.
+Ces décisions sont implémentées sur `feature/mvp-visitor-public-boundary` :
+API publiques séparées, aperçu/publication/retrait réservés à ADMIN et versions
+publiques limitées à la période et aux compteurs. La migration additive `0018`
+reste à qualifier en CI et n’est pas appliquée à OVH.
+
+Pour tester sans données réelles après build frontend :
+`.venv/bin/python scripts/serve-visitor-demo.py`, puis ouvrir
+[la démonstration locale](http://127.0.0.1:8010) et cliquer **Accès visiteur**.
+Ce serveur utilise une base synthétique temporaire et n’accepte pas les jetons
+opérationnels. Le tunnel OVH sur `8001` montre toujours la version déployée.
 
 Les découvertes ne sont jamais suivies automatiquement. Les limites de transport,
 les autorisations de sources, l'arrêt d'urgence et la minimisation des contenus

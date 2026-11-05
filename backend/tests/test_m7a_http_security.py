@@ -1,12 +1,12 @@
 """M7-A: HTTP security properties and RBAC regression guard (no external network)."""
 
-from fastapi.routing import APIRoute
+from tests.route_inventory import api_routes
 
 from app.main import app
 from app.security.api_key import require_api_key
 
 
-def _dependency_tree(route: APIRoute):
+def _dependency_tree(route):
     pending = [route.dependant]
     while pending:
         current = pending.pop()
@@ -25,18 +25,19 @@ def _is_role_check(dependency) -> bool:
 
 def test_versioned_api_routes_require_authentication():
     missing = []
-    for route in app.routes:
-        if not isinstance(route, APIRoute) or not route.path.startswith('/api/v1/'):
+    for route in api_routes(app):
+        if not route.path.startswith('/api/v1/'):
             continue
         if require_api_key not in set(_dependency_tree(route)):
             missing.append(f'{sorted(route.methods)} {route.path}')
+    assert len(list(api_routes(app))) > 40, 'Route enumeration must not be empty'
     assert missing == [], 'Unauthenticated v1 API routes: ' + ', '.join(missing)
 
 
 def test_all_mutations_require_role_guard():
     missing = []
-    for route in app.routes:
-        if not isinstance(route, APIRoute) or not route.path.startswith('/api/v1/'):
+    for route in api_routes(app):
+        if not route.path.startswith('/api/v1/'):
             continue
         if set(route.methods) & {'POST', 'PUT', 'PATCH', 'DELETE'}:
             if not any(_is_role_check(item) for item in _dependency_tree(route)):
@@ -54,9 +55,7 @@ def test_sensitive_reads_require_role_guard():
         '/api/v1/cti/quality-preview', '/api/v1/cti/cve-ioc-links',
     )
     missing = []
-    for route in app.routes:
-        if not isinstance(route, APIRoute):
-            continue
+    for route in api_routes(app):
         if not (route.path.startswith(protected_prefixes) or route.path in protected_exact):
             continue
         if not any(_is_role_check(item) for item in _dependency_tree(route)):
@@ -104,8 +103,8 @@ def test_viewer_denied_on_every_mutation(client, db_session_factory):
             expires_at=datetime.now(timezone.utc) + timedelta(days=1),
         ))
         db.commit()
-    for route in app.routes:
-        if not isinstance(route, APIRoute) or not route.path.startswith('/api/v1/'):
+    for route in api_routes(app):
+        if not route.path.startswith('/api/v1/'):
             continue
         for method in sorted(set(route.methods) & {'POST', 'PUT', 'PATCH', 'DELETE'}):
             # IDs are synthetic and do not resolve to any persisted object.
