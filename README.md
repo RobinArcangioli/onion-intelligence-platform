@@ -42,7 +42,9 @@ Pour tester sans données réelles après build frontend :
 `.venv/bin/python scripts/serve-visitor-demo.py`, puis ouvrir
 [la démonstration locale](http://127.0.0.1:8010) et cliquer **Accès visiteur**.
 Ce serveur utilise une base synthétique temporaire et n’accepte pas les jetons
-opérationnels. Le tunnel OVH sur `8001` montre toujours la version déployée.
+opérationnels. Pour son admin de démonstration uniquement, le jeton de fixture
+est `oip_CI_SYNTHETIC_NOT_A_REAL_OPERATOR_CREDENTIAL`. La vitrine synchronise
+les publications et permet de les ouvrir via **Consulter le rapport**. Le tunnel OVH sur `8001` montre toujours la version déployée.
 
 Les découvertes ne sont jamais suivies automatiquement. Les limites de transport,
 les autorisations de sources, l'arrêt d'urgence et la minimisation des contenus

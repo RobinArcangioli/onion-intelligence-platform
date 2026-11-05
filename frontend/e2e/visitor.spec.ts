@@ -61,3 +61,53 @@ test('visitor handles unavailable and empty public data without reflecting error
  await expect(page.getByRole('button',{name:'Dernières veilles',exact:true})).toBeInViewport();
  await expect(page.getByRole('button',{name:'Connexion opérateur',exact:true}).last()).toBeInViewport();
 });
+
+test('an already-open visitor sees an admin publication, reads it and loses access after withdrawal',async({page,browser})=>{
+ test.setTimeout(45000);
+ page.on('request',r=>{if(new URL(r.url()).pathname.startsWith('/api/')){
+  expect(new URL(r.url()).pathname).toMatch(/^\/api\/public\/v1\//);
+  expect(r.headers()['x-api-key']).toBeUndefined();
+ }});
+ await page.goto('/');
+ await page.getByRole('button',{name:'Accès visiteur',exact:true}).click();
+ await page.getByRole('button',{name:'Rapports publics',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Rapport de veille',exact:true})).toHaveCount(1);
+ const adminContext=await browser.newContext({baseURL:new URL(page.url()).origin});
+ try{
+  const admin=await adminContext.newPage();
+  await admin.goto('/');await admin.getByLabel('CLÉ API').fill(fixtureToken);
+  await admin.getByRole('button',{name:'Accéder au dashboard'}).click();
+  await admin.getByRole('navigation',{name:'Navigation principale'}).getByRole('button',{name:'Rapports',exact:true}).click();
+  const buttons=admin.getByRole('button',{name:'Vitrine',exact:true});await expect(buttons).toHaveCount(2);
+  for(let i=0;i<2;i++){
+   await buttons.nth(i).click();
+   const dialog=admin.getByRole('dialog',{name:'Publication publique du rapport'});
+   await expect(dialog.getByRole('status')).toContainText(/Ce rapport/);
+   if(await dialog.getByRole('button',{name:'Publier ces compteurs'}).count())break;
+   await dialog.getByRole('button',{name:'Fermer',exact:true}).click();
+  }
+  const management=admin.getByRole('dialog',{name:'Publication publique du rapport'});
+  const response=admin.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname.endsWith('/publication'));
+  await management.getByRole('button',{name:'Publier ces compteurs'}).click();
+  const publication=(await (await response).json()).publication_id as string;
+  await page.bringToFront();
+  const card=page.locator(`[data-publication-id="${publication}"]`);
+  await expect(card).toBeVisible({timeout:12000});
+  await expect(page.getByRole('heading',{name:'Rapport de veille',exact:true})).toHaveCount(2);
+  const detail=page.waitForResponse(r=>new URL(r.url()).pathname===`/api/public/v1/reports/${publication}`);
+  await card.getByRole('button',{name:'Consulter le rapport',exact:true}).click();
+  expect((await detail).status()).toBe(200);
+  const reader=page.getByRole('dialog',{name:'Consulter le rapport public'});
+  await expect(reader.getByRole('heading',{name:'Rapport de veille publié'})).toBeVisible();
+  await expect(reader.locator('dl')).toContainText('Observations');
+  await expect(reader).not.toContainText('INTERNAL_PRIVATE_SENTINEL');
+  await management.getByRole('button',{name:'Retirer de la vitrine'}).click();
+  await expect(management.getByText('Ce rapport n’est pas publié.')).toBeVisible();
+  await page.bringToFront();
+  await expect(reader.getByRole('alert')).toContainText('Ce rapport n’est plus public.',{timeout:12000});
+  await expect(reader.locator('dl')).toHaveCount(0);
+  await reader.getByRole('button',{name:'Fermer le rapport'}).click();
+  await expect(card).toHaveCount(0);
+  await expect(page.getByRole('heading',{name:'Rapport de veille',exact:true})).toHaveCount(1);
+ }finally{await adminContext.close();}
+});

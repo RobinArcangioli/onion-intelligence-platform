@@ -9,6 +9,7 @@ import hashlib
 import os
 import tempfile
 import atexit
+import argparse
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import UUID
@@ -73,4 +74,9 @@ app.dependency_overrides[get_session]=session
 app.dependency_overrides[get_settings]=settings
 app.mount('/',StaticFiles(directory=ROOT/'frontend/dist',html=True),name='synthetic-frontend')
 if __name__=='__main__':
-    uvicorn.run(app,host='127.0.0.1',port=8010,access_log=False)
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--port',type=int,default=8010)
+    args=parser.parse_args()
+    if not 1024 <= args.port <= 65535:
+        parser.error('Use an unprivileged local port')
+    uvicorn.run(app,host='127.0.0.1',port=args.port,access_log=False)

@@ -133,7 +133,7 @@ routes effectifs de FastAPI, avec garde contre une liste vide : l’ancienne
 introspection pouvait passer sans examiner les routes sur la version installée.
 Le job frontend inclut désormais ces trois scénarios navigateur, sur Ubuntu 24.04
 pris en charge par les dépendances Playwright installées. Le manifeste courant
-couvre **261 fichiers sources**, avec **262 chemins** à l’index (manifeste inclus).
+couvre **263 fichiers sources**, avec **264 chemins** à l’index (manifeste inclus).
 **CI inspectée et verte :** [run 42025061147, tentative 1](https://github.com/RobinArcangioli/onion-intelligence-platform/actions/runs/42025061147),
 commit applicatif `e75d67863982cc08523e9e066e0c11485e7973d4`, 5 novembre 2026,
 12:11:37–12:12:54 UTC (13:11:37–13:12:54 à Paris). Quatre jobs **SUCCESS** :
@@ -151,6 +151,24 @@ job backend correspondent aux six tests PG couverts dans les deux jobs dédiés.
 Ce résultat ne vaut ni test de charge, ni recette réseau cible, ni restauration
 hors site. Aucun déploiement OVH. Le suivi documentaire de ces preuves est un
 commit ultérieur sans modification applicative.
+
+**Correction après recette utilisateur :** la liste initiale préchargeait les
+publications à l’entrée dans la vitrine et ne les relisait pas lors du changement
+d’onglet ou d’une publication depuis une autre fenêtre. La vue relit désormais
+les données à l’ouverture de l’onglet, au retour sur la fenêtre et toutes les cinq
+secondes lorsqu’elle est visible. Un bouton **Consulter le rapport** ouvre la
+version publique par son API dédiée ; le lecteur relit son état de publication.
+Après retrait par l’admin, le contenu disparaît du lecteur au prochain contrôle
+et l’accès public renvoie 404. Le contrat de contenu reste `PUBLIC_TOTALS_V1` :
+aucune ligne interne supplémentaire n’est exposée.
+
+La recette navigateur comporte désormais **quatre scénarios**, dont un avec deux
+fenêtres indépendantes : publication admin → apparition dans une vitrine déjà
+ouverte → consultation → dépublication → contenu inaccessible. Quatre scénarios
+réussis localement, build TypeScript/Vite réussi. Le serveur automatique utilise
+le port **8011**, distinct de la démonstration manuelle **8010**, pour ne pas
+réinitialiser les données de test de l’utilisateur. Les nouvelles captures de
+réponse ne contiennent aucune clé opérateur et ne contactent que les API publiques.
 
 Recette manuelle **synthétique** reproductible, après build frontend et installation
 des dépendances backend : `.venv/bin/python scripts/serve-visitor-demo.py`, adresse

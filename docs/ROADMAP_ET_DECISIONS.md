@@ -125,6 +125,11 @@ persistant navigateur n’est introduit.
 de rapports agrégés et concurrence PostgreSQL ; recette opérateur à recueillir.
 Aucun déploiement OVH.**
 
+Correction de recette du 5 novembre : synchronisation des publications entre
+fenêtres et lecture explicite via **Consulter le rapport**. Le lecteur masque une
+version retirée ; test navigateur à deux fenêtres ajouté (quatre scénarios locaux
+réussis). Le contrat public et l’authentification interne ne changent pas.
+
 Dépend de D11–D13 et de la séparation MVP-01. À la même adresse web que
 l’administration, proposer un petit lien latéral **« accès visiteur »** qui ouvre
 une vue restreinte sans connexion. Définir des réponses API dédiées avec liste
