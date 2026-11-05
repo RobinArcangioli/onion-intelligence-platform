@@ -20,11 +20,11 @@ expliquent la base importée. Aucun accès OVH n'est autorisé par ces documents
 ## Cible MVP retenue le 5 novembre 2026
 
 Collecte **manuelle permanente et supervisée**, scheduler désactivé. Un
-**administrateur se connecte par mot de passe** ; une **vitrine visiteur** permet
+**administrateur conserve la connexion actuelle par jeton API individuel** ; une **vitrine visiteur** permet
 aux clients de consulter certaines informations sur les dernières veilles, sans
-accès aux fonctions ni aux informations sensibles. Ce modèle cible remplace la
-proposition de suppression complète de l’authentification ; le code utilise
-**encore des jetons et des rôles**. Les sauvegardes automatiques et une restauration
+accès aux fonctions ni aux informations sensibles. Le jeton API individuel reste la seule méthode d’authentification ; aucun
+mot de passe distinct ni écran de gestion de mot de passe n’est à développer.
+La connexion et les rôles actuels sont conservés. Les sauvegardes automatiques et une restauration
 vérifiée sont des prérequis d’exploitation durable.
 
 À la même adresse web, un petit lien **« accès visiteur »** ouvre la vue restreinte

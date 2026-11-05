@@ -60,13 +60,17 @@ et les guides balisés expliquent les écarts ; le code applicatif n'est pas mod
 
 ### Cible MVP décidée pendant la reprise
 
-Le propriétaire a précisé le 5 novembre 2026 : **administrateur connecté par
-simple mot de passe et vitrine visiteur limitée pour les clients**, sans accès
-aux fonctionnalités ni aux informations sensibles. Cette précision remplace la
-première formulation de retrait complet de l’authentification. La priorité reste
+Le propriétaire a précisé le 5 novembre 2026 : **conserver la connexion actuelle
+par jeton API individuel comme seule méthode d’authentification**, et ajouter une
+vitrine visiteur limitée pour les clients, sans accès aux fonctionnalités ni aux
+informations sensibles. L’expression « mot de passe » désignait le jeton existant :
+aucun nouveau mot de passe, écran de choix/modification ou session cookie à ajouter.
+Cette précision remplace les interprétations de retrait complet de l’authentification
+ou de remplacement des jetons par une connexion par mot de passe. La priorité reste
 la collecte manuelle permanente supervisée, scheduler désactivé, avec sauvegardes
 automatiques comme prérequis d’exploitation durable. Le code conserve son
-mécanisme de jetons/RBAC ; le nouveau modèle n’est pas encore implémenté.
+mécanisme de jetons/RBAC, qui correspond au choix retenu. Seuls l’accès visiteur,
+la séparation de ses données et la publication publique restent à implémenter.
 Le visiteur utilise la même adresse web que l’admin, via un petit lien latéral
 « accès visiteur », sans connexion. Par défaut, date, statut, volumes et noms
 des sources des dernières veilles sont publics, **sans adresse Onion**. L’admin

@@ -4,7 +4,7 @@
 > annoncées ci-dessous décrivent la rédaction de ce guide. Pour l’état actuel
 > de référence, lire [État de référence](ETAT_DE_REFERENCE.md) et
 > [Roadmap et décisions](ROADMAP_ET_DECISIONS.md). La décision MVP du
-> 5 novembre 2026 prévoit un admin connecté par mot de passe et une vitrine
+> 5 novembre 2026 prévoit un admin connecté par jeton API individuel et une vitrine
 > visiteur limitée ; ce modèle n’est pas encore implémenté. Ce guide
 > n’autorise aucune action OVH.
 

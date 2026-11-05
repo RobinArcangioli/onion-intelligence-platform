@@ -11,7 +11,7 @@ Produire une base documentaire et technique stable, puis un MVP centré sur la
 **collecte manuelle permanente et supervisée**. « Permanente » signifie que le
 worker peut rester disponible pour traiter les demandes humaines ; cela ne
 signifie ni collecte récurrente autonome ni navigation automatique. Le scheduler
-reste désactivé. Un **administrateur se connecte par simple mot de passe** ; un
+reste désactivé. Un **administrateur conserve la connexion actuelle par jeton API individuel** ; un
 **visiteur accède à une vitrine des dernières veilles**, sans accès aux fonctions
 ni aux informations sensibles. Les sauvegardes automatiques et leur restauration
 deviennent des prérequis d’exploitation durable.
@@ -19,7 +19,7 @@ deviennent des prérequis d’exploitation durable.
 Ces choix viennent des réponses explicites du propriétaire du 5 novembre 2026.
 Ils ne constituent pas une autorisation de connexion ou de déploiement OVH.
 La stabilisation présente centralise les références et nettoie leur navigation ;
-la simplification des accès, la vitrine et la préparation du mode permanent
+la séparation de l’accès visiteur, la vitrine et la préparation du mode permanent
 sont les incréments suivants, avec revue de leur périmètre ci-dessous.
 
 ## 2. Registre des décisions
@@ -35,19 +35,19 @@ sont les incréments suivants, avec revue de leur périmètre ci-dessous.
 | D07 | Aucun accès OVH, déploiement ou activation de collecte pendant cette reprise | Acté, périmètre de passation | Préparer et tester localement ; intervention distante sur instruction explicite ultérieure |
 | D08 | Sources autorisées, minimisation, aucune navigation automatique, pas de retry automatique | Contrats existants maintenus | Simplifier les accès ne retire pas les contrôles de sources, limites et transitions |
 | D09 | Conserver le profil réseau privé existant pendant la stabilisation | Maintien de l’existant ; cible web commune précisée dans D12 | La conception de la vitrine ne modifie aucun port ni accès distant pendant cette étape |
-| D10 | Admin connecté par simple mot de passe ; visiteur limité à une vitrine des dernières veilles | Acté, précision du propriétaire 2026-11-05 ; remplace D05 et clôt l’alternative mono-opérateur/CLI | Administration protégée côté serveur ; aucune fonction ni information sensible accessible au visiteur ; OIDC/MFA hors MVP |
+| D10 | Conserver le jeton API individuel existant comme seule authentification ; visiteur limité à la vitrine | Acté, clarification finale du propriétaire 2026-11-05 ; remplace D05 et l’interprétation « nouveau mot de passe » | Connexion et gouvernance des jetons conservées ; aucune interface de choix/modification de mot de passe, aucun remplacement par sessions cookie ; OIDC/MFA hors MVP |
 | D11 | Métadonnées publiques par défaut ET rapports publiés explicitement par l’admin | Acté, réponse du propriétaire 2026-11-05 | Deux circuits distincts : données publiques automatiques bornées par D13 ; publication volontaire de rapports, aucun accès implicite aux autres rapports |
-| D12 | Même adresse web que l’admin, petit lien latéral « accès visiteur », sans connexion visiteur | Acté, réponse du propriétaire 2026-11-05 | Vue restreinte de l’interface et API de lecture publique ; connexion par mot de passe réservée à l’admin ; exposition effective à préparer/tester avant déploiement |
+| D12 | Même adresse web que l’admin, petit lien latéral « accès visiteur », sans connexion visiteur | Acté, réponse du propriétaire 2026-11-05 | Vue restreinte de l’interface et API de lecture publique ; connexion par jeton API individuel réservée aux accès internes autorisés ; exposition effective à préparer/tester avant déploiement |
 | D13 | Champs publics par défaut : date, statut, volumes et noms des sources ; sans adresse Onion | Acté, réponse du propriétaire 2026-11-05 | Liste de champs publique explicite, sans exposition des objets internes complets ; audit des noms de sources et des réponses avant mise en ligne |
 
-Le code actuel possède toujours jetons, connexion et RBAC. **D10 décrit la cible,
-pas une authentification par mot de passe déjà livrée.** « Simple mot de passe »
-décrit le parcours administrateur ; cela ne signifie ni mot de passe faible ni
-stockage en clair. La séparation des données et actions admin/visiteur reste
-appliquée côté serveur. Le rôle `VIEWER` actuel ne constitue pas automatiquement
-la vitrine : ses droits doivent être comparés à D11/D13. Une décision actée
-est modifiée uniquement par une nouvelle décision explicite, datée, indiquant
-ce qu’elle remplace. Ne pas transformer une proposition en accord.
+La connexion existante par jeton API individuel est conforme au choix retenu :
+elle est **conservée**, avec les rôles, expiration, révocation et gouvernance des
+jetons déjà livrés. Le propriétaire utilisait « mot de passe » pour désigner ce
+jeton ; aucune nouvelle authentification, session cookie ou interface de gestion
+de mot de passe n’est demandée. Le rôle `VIEWER` actuel ne constitue pas la vitrine
+anonyme : ses droits doivent être comparés à D11/D13 sans les élargir implicitement.
+Les contrôles serveur des accès internes restent en place. Une décision actée est
+modifiée uniquement par une nouvelle décision explicite et datée.
 
 ## 3. Contrat documentaire et règle de livraison
 
@@ -92,31 +92,28 @@ pas une raison de lancer une suppression large.
 
 ## 5. Construire le MVP local : ordre de dépendance
 
-### MVP-01 — Admin par mot de passe et séparation visiteur (P1, M)
+### MVP-01 — Conserver les jetons et séparer l’accès visiteur (P1, M)
 
-Dépend de S05 et D10–D13. Inventorier les routes, composants, modèles, CLI,
-configurations et tests d’identité existants. Définir une matrice explicite :
-visiteur = métadonnées D13 et seuls rapports publiés selon D11 ; admin authentifié
-= fonctionnalités internes MVP. La protection doit porter sur les API et les
-exports, pas uniquement sur la navigation affichée. Aucun faux compte ADMIN
-universel et aucun élargissement automatique du rôle `VIEWER` existant.
+Dépend de S05 et D10–D13. La connexion admin existe déjà et convient au MVP :
+**aucune refonte de l’authentification**. Conserver le formulaire de jeton API,
+la transmission `X-API-Key`, le stockage en mémoire React, les rôles et la gestion
+locale des jetons. Ne pas ajouter de mot de passe administrateur distinct, de
+session cookie, ni d’interface pour choisir/modifier un mot de passe.
 
-Concevoir la connexion admin par mot de passe, son stockage sous empreinte adaptée,
-la session navigateur, la déconnexion, l’expiration, la limitation des tentatives
-et la récupération locale du mot de passe. L’adresse web commune D12 exige une séparation effective des surfaces
-publiques et internes avant toute exposition de la vitrine. Documenter le devenir des jetons API,
-la transition depuis les comptes existants et l’attribution des événements d’audit ;
-ne pas effacer les migrations historiques ni détruire les identités héritées.
-Aucune mise en œuvre OIDC/MFA requise pour ce MVP.
+Inventorier les API et définir une matrice explicite : visiteur anonyme = seules
+métadonnées D13 et versions de rapports publiées selon D11 ; accès internes =
+jeton valide et permissions existantes. Créer une frontière de lecture publique
+dédiée, sans désactiver globalement `require_api_key` ou les contrôles de rôle.
+Préserver les migrations et l’attribution existante des événements d’audit.
 
-**Acceptation :** admin connecté par mot de passe, session expirée/déconnectée
-refusée ; visiteurs sans accès aux opérations, sources sensibles, observations
-internes, IOC, notes, dossiers, exports internes ou champs hors liste D13 ;
-seuls les rapports explicitement publiés sont accessibles au visiteur ;
+**Acceptation :** connexion actuelle inchangée ; jetons invalides, expirés ou
+révoqués toujours refusés sur les API internes ; visiteurs sans accès aux sources
+internes, observations, IOC, notes, dossiers, exports internes ou champs hors D13 ;
 requêtes directes d’API et accès par identifiants devinés également refusés ;
-contrôles de source, quotas, stop et conflits 409 conservés ; audit cohérent.
-Le moniteur vérifie que la vitrine permise est accessible et que les API internes
-restent protégées ; ne pas remplacer globalement ses attentes 401 par des 200.
+contrôles de source, quotas, stop et conflits 409 conservés. Le moniteur vérifie
+la vitrine permise et le refus des API internes sans jeton ; ne pas remplacer
+globalement ses attentes 401 par des 200. Aucun nouveau secret ou mécanisme
+persistant navigateur n’est introduit.
 
 ### MVP-01V — Vitrine des dernières veilles (P1, M)
 
@@ -262,7 +259,7 @@ ce document. Un budget de durée et de ressources du pilote sera convenu avant O
   capacités existantes ne sont pas retirées silencieusement du produit.
 - Une éventuelle reprise de travaux M7-C2/C3/C4 exige inventaire et comparaison
   explicites ; les identifiants de ces lots ne prouvent pas leur compatibilité
-  avec le modèle MVP admin par mot de passe et vitrine limitée.
+  avec le modèle MVP conservant les jetons et ajoutant la vitrine limitée.
 
 OIDC/MFA et les fonctions d'équipe fondées sur l'authentification ne sont pas des
 prérequis MVP. Les remettre dans le périmètre exigerait une nouvelle décision.
@@ -277,8 +274,9 @@ Les résultats détaillés et leurs limites figurent dans l’état de référen
 Le commit documentaire suivant consigne cette preuve sans modifier l’application.
 
 Les décisions de parcours et de visibilité D10–D13 sont actées. La prochaine
-étape fonctionnelle est **MVP-01**, puis **MVP-01V** : admin par mot de passe,
-séparation des API, vitrine des métadonnées et rapports publiés. Les détails de
+étape fonctionnelle est **MVP-01**, puis **MVP-01V** : conserver la connexion
+par jeton existante, séparer les API publiques/internes et ajouter la vitrine
+des métadonnées et rapports publiés. Les détails de
 conception (unités, libellés et contenu des versions de rapport) seront documentés
 dans ces incréments avant mise en service. Aucune activation ou intervention OVH
 n’est réalisée par cette stabilisation.

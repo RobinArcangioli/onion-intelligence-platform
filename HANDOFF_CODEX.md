@@ -4,7 +4,7 @@
 > [État de référence](docs/ETAT_DE_REFERENCE.md) et
 > [Roadmap et décisions](docs/ROADMAP_ET_DECISIONS.md) pour le suivi actif.
 > La passation ci-dessous décrit la base importée. La décision explicite du
-> propriétaire prévoit un admin connecté par mot de passe et une vitrine
+> propriétaire prévoit un admin connecté par jeton API individuel et une vitrine
 > visiteur limitée ; ce modèle reste à implémenter. L’interdiction d’accès
 > OVH reste applicable.
 
