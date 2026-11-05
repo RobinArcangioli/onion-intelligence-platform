@@ -95,7 +95,8 @@ pas une raison de lancer une suppression large.
 
 ### MVP-01 — Conserver les jetons et séparer l’accès visiteur (P1, M)
 
-**État : implémenté, recette locale validée ; CI/recette PostgreSQL à inspecter.**
+**État : VALIDÉ localement et par CI `42025061147` sur `e75d678` ; recette
+opérateur à recueillir, non déployé.**
 
 Dépend de S05 et D10–D13. La connexion admin existe déjà et convient au MVP :
 **aucune refonte de l’authentification**. Conserver le formulaire de jeton API,
@@ -120,8 +121,9 @@ persistant navigateur n’est introduit.
 
 ### MVP-01V — Vitrine des dernières veilles (P1, M)
 
-**État : implémenté avec publication de rapports agrégés, recette locale validée ;
-CI/recette PostgreSQL à inspecter. Aucun déploiement OVH.**
+**État : VALIDÉ localement et par CI `42025061147` sur `e75d678`, avec publication
+de rapports agrégés et concurrence PostgreSQL ; recette opérateur à recueillir.
+Aucun déploiement OVH.**
 
 Dépend de D11–D13 et de la séparation MVP-01. À la même adresse web que
 l’administration, proposer un petit lien latéral **« accès visiteur »** qui ouvre
@@ -279,9 +281,16 @@ travail**, sans promotion sur `main` ni création de tag. La référence techniq
 Les résultats détaillés et leurs limites figurent dans l’état de référence.
 Le commit documentaire suivant consigne cette preuve sans modifier l’application.
 
-Les décisions de parcours et de visibilité D10–D13 sont actées. **MVP-01 et MVP-01V sont implémentés et validés localement** sur
-`feature/mvp-visitor-public-boundary`, issue de `cd7c343`. La CI doit qualifier la
-migration `0018` et l’unicité de publication concurrente PostgreSQL avant clôture.
+Les décisions de parcours et de visibilité D10–D13 sont actées. **MVP-01 et MVP-01V
+sont implémentés et validés localement et en CI** sur
+`feature/mvp-visitor-public-boundary`, commit applicatif
+`e75d67863982cc08523e9e066e0c11485e7973d4`, issu de `cd7c343`.
+Le [run 42025061147](https://github.com/RobinArcangioli/onion-intelligence-platform/actions/runs/42025061147)
+a quatre jobs verts : backend 362 réussites / six skips PG couverts dans les jobs
+dédiés, 23 politiques réussies, frontend 17 tests + trois scénarios navigateur,
+PostgreSQL M4-B un test et M7-C 17 tests réussis, aucun skip dans les jobs PG.
+La migration `0018` et l’unicité de publication concurrente sont qualifiées sur
+PostgreSQL 17. La recette opérateur reste la prochaine vérification utilisateur.
 La recette manuelle synthétique est disponible via `scripts/serve-visitor-demo.py`
 (port local 8010), distinct du tunnel OVH 8001. Après qualification, la prochaine
 étape technique sera **MVP-02** (file/worker PostgreSQL), puis MVP-03/04 selon les

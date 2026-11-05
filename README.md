@@ -34,7 +34,9 @@ explicitement certains rapports ; les autres informations restent internes.
 Ces décisions sont implémentées sur `feature/mvp-visitor-public-boundary` :
 API publiques séparées, aperçu/publication/retrait réservés à ADMIN et versions
 publiques limitées à la période et aux compteurs. La migration additive `0018`
-reste à qualifier en CI et n’est pas appliquée à OVH.
+est validée sur PostgreSQL 17 par les quatre jobs verts du
+[run 42025061147](https://github.com/RobinArcangioli/onion-intelligence-platform/actions/runs/42025061147),
+commit applicatif `e75d678`. Elle n’est pas appliquée à OVH.
 
 Pour tester sans données réelles après build frontend :
 `.venv/bin/python scripts/serve-visitor-demo.py`, puis ouvrir

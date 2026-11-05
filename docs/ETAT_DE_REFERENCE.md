@@ -72,7 +72,7 @@ la collecte manuelle permanente supervisée, scheduler désactivé, avec sauvega
 automatiques comme prérequis d’exploitation durable. Le code conserve son
 mécanisme de jetons/RBAC, qui correspond au choix retenu. L’accès visiteur,
 la séparation de ses données et la publication publique sont implémentés sur la
-branche active, en cours de qualification avant tout déploiement.
+branche active et validés en CI, avant toute recette opérateur ou déploiement.
 Le visiteur utilise la même adresse web que l’admin, via un petit lien latéral
 « accès visiteur », sans connexion. Par défaut, date, statut, volumes et noms
 des sources des dernières veilles sont publics, **sans adresse Onion**. L’admin
@@ -83,7 +83,8 @@ La décision de licence est reportée après le MVP et exclue de la roadmap.
 
 ### Incrément actif — accès visiteur et frontière publique
 
-Branche **`feature/mvp-visitor-public-boundary`**, issue de `cd7c343` (clarification
+Branche **`feature/mvp-visitor-public-boundary`**, commit applicatif
+**`e75d67863982cc08523e9e066e0c11485e7973d4`**, issue de `cd7c343` (clarification
 conservant les jetons), elle-même descendante de la base stabilisée. Cet incrément
 implémente MVP-01 et MVP-01V, sans déploiement OVH. La tête Alembic de cette
 branche est **`0018_public_report_publications`** ; les preuves M7-C1.1 ci-dessous
@@ -133,8 +134,23 @@ introspection pouvait passer sans examiner les routes sur la version installée.
 Le job frontend inclut désormais ces trois scénarios navigateur, sur Ubuntu 24.04
 pris en charge par les dépendances Playwright installées. Le manifeste courant
 couvre **261 fichiers sources**, avec **262 chemins** à l’index (manifeste inclus).
-La CI PostgreSQL rejouera les migrations et la concurrence de publication réelle ;
-son résultat sera consigné après inspection, sans le présumer acquis.
+**CI inspectée et verte :** [run 42025061147, tentative 1](https://github.com/RobinArcangioli/onion-intelligence-platform/actions/runs/42025061147),
+commit applicatif `e75d67863982cc08523e9e066e0c11485e7973d4`, 5 novembre 2026,
+12:11:37–12:12:54 UTC (13:11:37–13:12:54 à Paris). Quatre jobs **SUCCESS** :
+
+| Job | Résultat inspecté |
+|---|---|
+| Backend et politiques | **362 passed / six skips PG** ; **23 politiques réussies**, zéro skip Nginx ; audit index, syntaxe shell et compile Python réussis |
+| Frontend Node 24 / Ubuntu 24.04 | **17 tests unitaires réussis**, zéro skip ; TypeScript/Vite réussis ; **trois scénarios Playwright réussis** |
+| PostgreSQL M4-B | **Un test réel réussi**, zéro skip |
+| PostgreSQL M7-C | **17 tests réussis**, zéro skip : cinq tests PG réels et douze cas de sécurité/lanceur, dont l’unicité de publication sous deux sessions concurrentes |
+
+Les migrations complètes, le retrait/retour de `0018`, et les protections de
+concurrence existantes sont donc également vérifiés sur PG17. Les six skips du
+job backend correspondent aux six tests PG couverts dans les deux jobs dédiés.
+Ce résultat ne vaut ni test de charge, ni recette réseau cible, ni restauration
+hors site. Aucun déploiement OVH. Le suivi documentaire de ces preuves est un
+commit ultérieur sans modification applicative.
 
 Recette manuelle **synthétique** reproductible, après build frontend et installation
 des dépendances backend : `.venv/bin/python scripts/serve-visitor-demo.py`, adresse
