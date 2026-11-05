@@ -1,5 +1,13 @@
 # Passation OIP à Codex — M7-C1.1
 
+> **Reprise de stabilisation du 5 novembre 2026 :** lire désormais
+> [État de référence](docs/ETAT_DE_REFERENCE.md) et
+> [Roadmap et décisions](docs/ROADMAP_ET_DECISIONS.md) pour le suivi actif.
+> La passation ci-dessous décrit la base importée. La décision explicite du
+> propriétaire prévoit un admin connecté par mot de passe et une vitrine
+> visiteur limitée ; ce modèle reste à implémenter. L’interdiction d’accès
+> OVH reste applicable.
+
 Date de préparation : 5 novembre 2026 (Europe/Paris).
 
 ## Prompt de reprise

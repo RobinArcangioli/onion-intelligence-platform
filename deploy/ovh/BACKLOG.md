@@ -1,5 +1,11 @@
 # Backlog OIP 2026 — ordre de dépendance pour un déploiement réel
 
+> **Référence technique historique.** Pour le statut et les décisions actuels,
+> consulter [l’état de référence](../../docs/ETAT_DE_REFERENCE.md) et
+> [la roadmap active](../../docs/ROADMAP_ET_DECISIONS.md). Les statuts et backlogs
+> ci-dessous ne constituent pas une photographie actuelle d’OVH ni une
+> autorisation d’intervention.
+
 Échelle relative : XS < S < M < L < XL. La **valeur** et le **risque** sont qualitatifs, non des promesses de calendrier. Les durées du document de passation (J0–J5, S1–S16+) sont à revalider après premiers essais en infrastructure.
 
 | Ordre / issue | Dépend de | Taille | Valeur utilisateur | Risque principal | Critère d'acceptation concret |

@@ -1,5 +1,11 @@
 # OIP — M1 exploitation OVH (Ubuntu 26.04, VPS-1)
 
+> **Référence technique historique.** Pour le statut et les décisions actuels,
+> consulter [l’état de référence](../../docs/ETAT_DE_REFERENCE.md) et
+> [la roadmap active](../../docs/ROADMAP_ET_DECISIONS.md). Les statuts et backlogs
+> ci-dessous ne constituent pas une photographie actuelle d’OVH ni une
+> autorisation d’intervention.
+
 **Statut :** fichiers préparés dans une branche locale ; ne rien supposer déployé.
 **Séparation stricte :** surveillance du noyau `db/api/gateway` uniquement, **aucune activation de Tor**, aucune ouverture de port, aucune CI capable d'accéder au VPS. Les commandes ci-dessous doivent être exécutées par l'opérateur après revue sur le VPS `ssh ubuntu@vps-ovh`.
 

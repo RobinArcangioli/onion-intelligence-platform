@@ -39,7 +39,9 @@ jobs:
         run: python -m unittest discover -s deploy/ovh/tests -v
       - name: Shell syntax and Python compile
         run: |
-          bash -n deploy/ovh/*.sh
+          for script in scripts/*.sh deploy/ovh/*.sh; do
+            bash -n "$script"
+          done
           python -m compileall -q deploy/ovh
 
   frontend:

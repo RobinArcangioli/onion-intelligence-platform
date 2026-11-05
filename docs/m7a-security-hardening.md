@@ -1,5 +1,13 @@
 # M7-A — Frontière HTTP, permissions et modèle de menace (hors production)
 
+> **Repère historique de lot.** Les statuts de déploiement, validations et suites
+> annoncées ci-dessous décrivent la rédaction de ce guide. Pour l’état actuel
+> de référence, lire [État de référence](ETAT_DE_REFERENCE.md) et
+> [Roadmap et décisions](ROADMAP_ET_DECISIONS.md). La décision MVP du
+> 5 novembre 2026 prévoit un admin connecté par mot de passe et une vitrine
+> visiteur limitée ; ce modèle n’est pas encore implémenté. Ce guide
+> n’autorise aucune action OVH.
+
 ## Périmètre, état et décision
 
 Ce lot porte uniquement sur le proxy Nginx et l'API FastAPI, ainsi que sur des tests de **régression RBAC**. Aucun changement de schéma ni migration, aucune collecte Tor, aucun envoi externe et aucune nouvelle surface réseau. La sauvegarde automatisée du VPS reste reportée à la demande du propriétaire. **Ne pas déployer sur la production OVH sans contrôles préalables et procédure de retour arrière**.

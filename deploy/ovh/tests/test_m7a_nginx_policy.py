@@ -37,8 +37,17 @@ class NginxSecurityPolicyTests(unittest.TestCase):
                 CONF.read_text().replace('proxy_pass http://api:8000;',
                                          'proxy_pass http://127.0.0.1:8000;')
             )
+            # Keep PID, logs and temporary files independent of system paths.
             (temp / 'nginx.conf').write_text(
-                'events {}\nhttp {\ninclude ' + str(temp / 'site.conf') + ';\n}\n'
+                f'pid "{temp / "nginx.pid"}";\n'
+                'error_log stderr;\n'
+                'events {}\nhttp {\n'
+                f'client_body_temp_path "{temp / "client_body"}";\n'
+                f'proxy_temp_path "{temp / "proxy"}";\n'
+                f'fastcgi_temp_path "{temp / "fastcgi"}";\n'
+                f'uwsgi_temp_path "{temp / "uwsgi"}";\n'
+                f'scgi_temp_path "{temp / "scgi"}";\n'
+                f'include "{temp / "site.conf"}";\n}}\n'
             )
             result = subprocess.run(
                 ['nginx', '-t', '-p', str(temp), '-c', str(temp / 'nginx.conf')],

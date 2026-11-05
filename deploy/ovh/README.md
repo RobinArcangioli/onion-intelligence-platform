@@ -1,5 +1,11 @@
 # OIP — premier déploiement OVHcloud **privé** (lot P0-A/P0-B)
 
+> **Référence technique historique.** Pour le statut et les décisions actuels,
+> consulter [l’état de référence](../../docs/ETAT_DE_REFERENCE.md) et
+> [la roadmap active](../../docs/ROADMAP_ET_DECISIONS.md). Les statuts et backlogs
+> ci-dessous ne constituent pas une photographie actuelle d’OVH ni une
+> autorisation d’intervention.
+
 > Statut : incrément préparatoire vérifiable, **non déployé** sur OVH.
 > Ne pas lancer Tor, `collector` ou `queue_worker` avant accord contractuel spécifique.
 > Aucune collecte Onion, aucun scheduler et aucun accès internet public à l'UI dans ce lot.

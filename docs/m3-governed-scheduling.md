@@ -1,5 +1,13 @@
 # M3 — Surveillance récurrente gouvernée (hors production)
 
+> **Repère historique de lot.** Les statuts de déploiement, validations et suites
+> annoncées ci-dessous décrivent la rédaction de ce guide. Pour l’état actuel
+> de référence, lire [État de référence](ETAT_DE_REFERENCE.md) et
+> [Roadmap et décisions](ROADMAP_ET_DECISIONS.md). La décision MVP du
+> 5 novembre 2026 prévoit un admin connecté par mot de passe et une vitrine
+> visiteur limitée ; ce modèle n’est pas encore implémenté. Ce guide
+> n’autorise aucune action OVH.
+
 **État : code préparé localement, activation interdite sur le VPS OVH actuel.**
 Aucune connexion Tor n'a été tentée. Les sauvegardes automatisées restent reportées
 à la demande du propriétaire. La migration `0010_governed_schedules` ne doit PAS

@@ -1,5 +1,13 @@
 # M7-B2 — Gouvernance des jetons nominatifs (pilote privé)
 
+> **Repère historique de lot.** Les statuts de déploiement, validations et suites
+> annoncées ci-dessous décrivent la rédaction de ce guide. Pour l’état actuel
+> de référence, lire [État de référence](ETAT_DE_REFERENCE.md) et
+> [Roadmap et décisions](ROADMAP_ET_DECISIONS.md). La décision MVP du
+> 5 novembre 2026 prévoit un admin connecté par mot de passe et une vitrine
+> visiteur limitée ; ce modèle n’est pas encore implémenté. Ce guide
+> n’autorise aucune action OVH.
+
 ## Périmètre vérifié dans le code
 
 Ce lot conserve l'authentification par en-tête `X-API-Key` et les rôles `VIEWER`, `ANALYST`, `ADMIN`. Les jetons sont générés avec un aléa cryptographique, stockés uniquement sous empreinte SHA-256 côté base et n'existent dans le navigateur qu'en mémoire React. Il n'ajoute **ni MFA**, ni session par cookie, ni OIDC/SSO, ni migration SQL.

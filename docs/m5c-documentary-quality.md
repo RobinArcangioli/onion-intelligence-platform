@@ -1,5 +1,13 @@
 # M5-C — Qualité documentaire CTI et cooccurrences contrôlées
 
+> **Repère historique de lot.** Les statuts de déploiement, validations et suites
+> annoncées ci-dessous décrivent la rédaction de ce guide. Pour l’état actuel
+> de référence, lire [État de référence](ETAT_DE_REFERENCE.md) et
+> [Roadmap et décisions](ROADMAP_ET_DECISIONS.md). La décision MVP du
+> 5 novembre 2026 prévoit un admin connecté par mot de passe et une vitrine
+> visiteur limitée ; ce modèle n’est pas encore implémenté. Ce guide
+> n’autorise aucune action OVH.
+
 **Statut : développement et recette locale uniquement.** Ce module n'autorise aucune collecte, recherche DNS, enrichissement en ligne, notification, export ou modification du VPS. Il est **en lecture seule** et n'ajoute aucune migration au-delà de `0014_ioc_candidates` (M5-B).
 
 ## Objectifs et vocabulaire

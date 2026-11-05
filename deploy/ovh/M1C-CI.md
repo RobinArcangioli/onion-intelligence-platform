@@ -1,5 +1,11 @@
 # OIP M1-C — CI without automatic OVH deployment
 
+> **Référence technique historique.** Pour le statut et les décisions actuels,
+> consulter [l’état de référence](../../docs/ETAT_DE_REFERENCE.md) et
+> [la roadmap active](../../docs/ROADMAP_ET_DECISIONS.md). Les statuts et backlogs
+> ci-dessous ne constituent pas une photographie actuelle d’OVH ni une
+> autorisation d’intervention.
+
 **Deployment status:** M1-A monitoring verified on `vps-ovh`. Automatic backups (M1-B) are **deferred by the owner**. No new database migrations, destructive changes, production upgrades or automatic rollback are authorized while recoverability is not revalidated. Tor remains disabled pending the provider's contractual approval.
 
 ## What the incremental update does

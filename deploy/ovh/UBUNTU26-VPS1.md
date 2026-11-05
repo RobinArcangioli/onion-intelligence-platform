@@ -1,5 +1,11 @@
 # OIP — installation guidée sur VPS-1 OVHcloud / Ubuntu 26.04 LTS
 
+> **Référence technique historique.** Pour le statut et les décisions actuels,
+> consulter [l’état de référence](../../docs/ETAT_DE_REFERENCE.md) et
+> [la roadmap active](../../docs/ROADMAP_ET_DECISIONS.md). Les statuts et backlogs
+> ci-dessous ne constituent pas une photographie actuelle d’OVH ni une
+> autorisation d’intervention.
+
 **Périmètre :** déploiement pilote **privé** `db + api + gateway`, Tor/collector/worker **désactivés** et nouvelle collecte manuelle interdite. Ce runbook n'est **pas** une preuve de déploiement sur le VPS ; inscrire les résultats réellement constatés.
 
 ## 0. Préparer les accès (sur le PC)

@@ -1,5 +1,13 @@
 # Guide utilisateur — Onion Intelligence Platform
 
+> **Repère historique de lot.** Les statuts de déploiement, validations et suites
+> annoncées ci-dessous décrivent la rédaction de ce guide. Pour l’état actuel
+> de référence, lire [État de référence](ETAT_DE_REFERENCE.md) et
+> [Roadmap et décisions](ROADMAP_ET_DECISIONS.md). La décision MVP du
+> 5 novembre 2026 prévoit un admin connecté par mot de passe et une vitrine
+> visiteur limitée ; ce modèle n’est pas encore implémenté. Ce guide
+> n’autorise aucune action OVH.
+
 *OIP v1.0.0-rc2 · Usage local · Version de référence du code gelé*
 
 Bienvenue dans OIP. Ce guide couvre les actions quotidiennes depuis l'interface, sans manipulation de conteneurs. Pour installer le service ou gérer les identités, consultez le [guide d'administration](installation-administration.md).

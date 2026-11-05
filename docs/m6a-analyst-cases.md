@@ -1,5 +1,13 @@
 # M6-A — Dossiers d'analyse liés aux alertes (développement uniquement)
 
+> **Repère historique de lot.** Les statuts de déploiement, validations et suites
+> annoncées ci-dessous décrivent la rédaction de ce guide. Pour l’état actuel
+> de référence, lire [État de référence](ETAT_DE_REFERENCE.md) et
+> [Roadmap et décisions](ROADMAP_ET_DECISIONS.md). La décision MVP du
+> 5 novembre 2026 prévoit un admin connecté par mot de passe et une vitrine
+> visiteur limitée ; ce modèle n’est pas encore implémenté. Ce guide
+> n’autorise aucune action OVH.
+
 **Statut : GO code/test SQLite ; NO-GO production OVH.** Le jalon ajoute la
 migration additive `0015_analyst_cases` et une interface « Dossiers » ; ne pas
 lancer `alembic upgrade head` sur le VPS en fonctionnement. Avant une

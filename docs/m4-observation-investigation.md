@@ -1,5 +1,13 @@
 # M4-A — Recherche d'observations et provenance (hors production)
 
+> **Repère historique de lot.** Les statuts de déploiement, validations et suites
+> annoncées ci-dessous décrivent la rédaction de ce guide. Pour l’état actuel
+> de référence, lire [État de référence](ETAT_DE_REFERENCE.md) et
+> [Roadmap et décisions](ROADMAP_ET_DECISIONS.md). La décision MVP du
+> 5 novembre 2026 prévoit un admin connecté par mot de passe et une vitrine
+> visiteur limitée ; ce modèle n’est pas encore implémenté. Ce guide
+> n’autorise aucune action OVH.
+
 ## Périmètre livré
 
 Ce lot ajoute une **recherche documentaire sur les métadonnées déjà retenues** et une vue de provenance en lecture seule. Il n'augmente **pas** la quantité de contenu d'une page stockée : le texte temporaire extrait et le HTML restent éphémères.
