@@ -3,11 +3,12 @@ import hashlib
 import json
 import re
 from datetime import datetime, timezone
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from app.models import Report
+from app.schemas.publication import PublicIncidentDraft
 
 PUBLIC_DISCLAIMER = 'Veille documentaire : les mentions et les volumes ne prouvent aucun incident.'
 TOTAL_KEYS = ('observations', 'discoveries', 'classifications', 'indicators', 'alerts')
@@ -44,12 +45,31 @@ class PublicReportPayload(BaseModel):
     disclaimer: Literal[PUBLIC_DISCLAIMER] = PUBLIC_DISCLAIMER
 
 
-def project_report(report: Report) -> PublicReportPayload:
+class ReviewedPublicReportPayload(PublicReportPayload):
+    schema_version: Literal['PUBLIC_REVIEW_V2'] = 'PUBLIC_REVIEW_V2'
+    incident: PublicIncidentDraft
+    publication_review: Literal['ADMIN_REVIEWED_FOR_PUBLICATION'] = 'ADMIN_REVIEWED_FOR_PUBLICATION'
+
+
+PublicReportContent = Annotated[PublicReportPayload | ReviewedPublicReportPayload,
+                                Field(discriminator='schema_version')]
+PUBLIC_REPORT_ADAPTER = TypeAdapter(PublicReportContent)
+
+
+def read_public_report(value) -> PublicReportPayload | ReviewedPublicReportPayload:
+    return PUBLIC_REPORT_ADAPTER.validate_python(value)
+
+
+def project_report(report: Report, incident: PublicIncidentDraft | None = None):
     totals = report.snapshot.get('totals', {})
-    # Reject malformed snapshots rather than coerce arbitrary strings into public data.
     counters = PublicTotals.model_validate({key: totals.get(key, 0) for key in TOTAL_KEYS})
-    return PublicReportPayload(period_start=utc_date(report.period_start),
-                               period_end=utc_date(report.period_end), totals=counters)
+    fields = dict(period_start=utc_date(report.period_start),
+                  period_end=utc_date(report.period_end), totals=counters)
+    if incident is None and report.snapshot.get('publication_draft') is not None:
+        incident = PublicIncidentDraft.model_validate(report.snapshot['publication_draft'])
+    if incident is not None:
+        return ReviewedPublicReportPayload(**fields, incident=incident)
+    return PublicReportPayload(**fields)
 
 
 def payload_digest(payload: PublicReportPayload) -> str:

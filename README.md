@@ -46,6 +46,24 @@ opérationnels. Pour son admin de démonstration uniquement, le jeton de fixture
 est `oip_CI_SYNTHETIC_NOT_A_REAL_OPERATOR_CREDENTIAL`. La vitrine synchronise
 les publications et permet de les ouvrir via **Consulter le rapport**. Le tunnel OVH sur `8001` montre toujours la version déployée.
 
+### Simulation complète de deux fuites fictives
+
+Après le build frontend, lancer `.venv/bin/python scripts/serve-visitor-demo.py --simulation --port 8012`
+et ouvrir [la simulation locale](http://127.0.0.1:8012). La base temporaire démarre avec
+deux sources fictives et aucun rapport. Utiliser le jeton de fixture indiqué ci-dessus.
+
+1. Dans **Rapports**, cliquer sur **Lancer les deux veilles simulées**. Dans **Alertes**,
+   vérifier les deux alertes **Fuite de données suspectée** et les acquitter si souhaité.
+2. Dans **Rapports**, ouvrir **Vitrine** pour chaque rapport. Relire les champs publics,
+   actualiser l’aperçu si un champ a changé, confirmer la revue et cliquer sur
+   **Publier le rapport relu**.
+3. Dans une fenêtre sans session admin, ouvrir **Accès visiteur**, puis **Rapports publics**
+   et **Consulter le rapport**. Le retrait depuis **Vitrine** révoque la lecture publique.
+
+Les deux cas représentent des annonces fictives portant sur 2 500 fiches clients
+(ALPHA-01) et 750 dossiers RH (BETA-02). Le worker traite deux réponses HTML locales.
+Le visiteur lit uniquement la fiche relue et ses compteurs publics.
+
 Les découvertes ne sont jamais suivies automatiquement. Les limites de transport,
 les autorisations de sources, l'arrêt d'urgence et la minimisation des contenus
 restent des contraintes du produit. Un signal CTI ne prouve pas une compromission.

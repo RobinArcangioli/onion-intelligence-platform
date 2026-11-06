@@ -149,8 +149,8 @@ Deux circuits de publication distincts :
    d’une version identifiée et dépublication. Le contenu publié doit respecter
    l’interdiction d’exposer les informations sensibles ; ne pas rendre public
    l’export interne complet sans revue. Une modification interne ultérieure ne
-   doit pas modifier silencieusement la version déjà publiée. Les règles détaillées
-   d’expurgation et le format public seront conçus avant l’implémentation.
+   doit pas modifier silencieusement la version déjà publiée. Le format
+   `PUBLIC_REVIEW_V2` applique cette règle aux fiches d’incident relues.
 
 **Acceptation :** les quatre catégories de métadonnées D13 sont consultables sans
 connexion ; noms autorisés visibles, adresses Onion et champs internes absents ;
@@ -161,6 +161,20 @@ leur absence des réponses, erreurs et exports publics. Tester états vide/indis
 pagination, passage visiteur/admin et déconnexion ; aucun accès à la collecte
 depuis la vitrine. Le réseau et les secrets réels ne sont pas modifiés par cette
 conception locale.
+
+### MVP-01S — Simulation complète de la publication d’incidents
+
+Deux veilles fictives déclenchées à la demande alimentent le worker, les observations
+et les alertes de revendication de fuite. Les rapports sont privés à leur création.
+L’admin relit la fiche publique, confirme l’aperçu et publie explicitement. La
+vitrine anonyme affiche la fiche publiée et son retrait rend le lien inaccessible.
+Une revendication observée garde son statut de signal non vérifié.
+
+**Acceptation locale** par la recette Playwright et une reproduction manuelle sur
+le port 8012. Vérifier les deux cas, le refus avant publication, l’absence de contenu
+interne et la révocation après retrait. Cette recette utilise uniquement des
+fixtures et prépare le contrôle de la vitrine dans le futur environnement de
+recette prévu par MVP-05.
 
 ### MVP-02 — Qualifier file et scheduler inactif sur PostgreSQL (P1, M)
 

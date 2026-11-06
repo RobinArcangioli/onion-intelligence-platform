@@ -177,6 +177,29 @@ SQLite temporaire distincte et une identité de fixture fixe, jamais un jeton r�
 Il ne contacte pas OVH ni Tor. Le tunnel `127.0.0.1:8001` reste distinct et montre
 la version réellement déployée, sans cet incrément.
 
+### Simulation locale de bout en bout et rapports relus
+
+Le mode `--simulation` du serveur de démonstration exécute deux demandes de collecte
+via l’API authentifiée. Le worker extrait les observations et déclenche deux alertes
+`DATA_LEAK_CLAIM` au statut `OBSERVED_CLAIM`, puis l’API crée deux rapports privés,
+chacun rattaché à sa source. La réponse du transport est fournie par deux fixtures
+HTML en mémoire. Les actions de démonstration sont propres à ce serveur local, avec
+une base SQLite jetable.
+
+Le format `PUBLIC_REVIEW_V2` contient la fiche relue par l’admin et les compteurs
+publics. La fiche permet de publier le nom de l’entreprise, le secteur, la date de
+détection, une synthèse, les catégories de données, le volume annoncé et les
+recommandations. Les deux fiches portent une mention de simulation. La confirmation
+admin porte sur une empreinte de l’aperçu complet. La version publiée reste figée
+jusqu’au retrait. Les réponses publiques s’appuient sur un schéma explicite, distinct
+des observations et des alertes internes. Les publications `PUBLIC_TOTALS_V1` restent
+lisibles. La tête Alembic reste `0018`.
+
+La [recette manuelle](../README.md#simulation-complète-de-deux-fuites-fictives)
+utilise le port 8012. La recette Playwright utilise le port 8013.
+Validations locales : 5 scénarios Playwright réussis, build TypeScript/Vite réussi,
+373 tests backend réussis et 6 tests PostgreSQL ignorés dans cette exécution.
+
 ## 3. Architecture présente
 
 Python 3.12, FastAPI, SQLAlchemy/Alembic, PostgreSQL 17 ; interface React 19 /

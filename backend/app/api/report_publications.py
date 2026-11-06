@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_session
 from app.models import AuditLog, Report, ReportPublication
-from app.public_view.projections import payload_digest, project_report
+from app.public_view.projections import payload_digest, project_report, ReviewedPublicReportPayload, read_public_report
+from app.schemas.publication import PublicIncidentDraft
 from app.security.api_key import require_api_key, require_role
 
 router = APIRouter(prefix='/api/v1/reports', tags=['report-publication'],
@@ -21,6 +22,8 @@ router = APIRouter(prefix='/api/v1/reports', tags=['report-publication'],
 class PublishRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
     expected_digest: str = Field(pattern='^[0-9a-f]{64}$')
+    incident: PublicIncidentDraft | None = None
+    review_confirmed: bool = Field(default=False, strict=True)
 
 
 def locked_report(db, report_id):
@@ -30,9 +33,9 @@ def locked_report(db, report_id):
     return row
 
 
-def public_payload(row):
+def public_payload(row, incident=None):
     try:
-        return project_report(row)
+        return project_report(row, incident)
     except (ValidationError, AttributeError, TypeError):
         raise HTTPException(409, 'Report counters cannot be published') from None
 
@@ -42,7 +45,30 @@ def preview(report_id: uuid.UUID, db: Session = Depends(get_session)):
     row = db.get(Report, report_id)
     if row is None:
         raise HTTPException(404, 'Report not found')
-    payload = public_payload(row)
+    current = db.scalar(select(ReportPublication).where(ReportPublication.report_id == report_id)
+                        .order_by(ReportPublication.is_public.desc(), ReportPublication.published_at.desc(),
+                                  ReportPublication.id.desc()).limit(1))
+    previous = read_public_report(current.payload) if current else None
+    if current and current.is_public:
+        payload = previous
+    else:
+        payload = public_payload(row, previous.incident if isinstance(previous, ReviewedPublicReportPayload) else None)
+    return {'content': payload, 'digest': payload_digest(payload),
+            'publication_id': current.id if current and current.is_public else None}
+
+
+
+class PreviewRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    incident: PublicIncidentDraft
+
+
+@router.post('/{report_id}/publication-preview')
+def preview_edited(report_id: uuid.UUID, request: PreviewRequest, db: Session = Depends(get_session)):
+    row = db.get(Report, report_id)
+    if row is None:
+        raise HTTPException(404, 'Report not found')
+    payload = public_payload(row, request.incident)
     current = db.scalar(select(ReportPublication).where(ReportPublication.report_id == report_id,
                                                        ReportPublication.is_public.is_(True)))
     return {'content': payload, 'digest': payload_digest(payload),
@@ -52,7 +78,9 @@ def preview(report_id: uuid.UUID, db: Session = Depends(get_session)):
 @router.post('/{report_id}/publication', status_code=201)
 def publish(report_id: uuid.UUID, request: PublishRequest, db: Session = Depends(get_session)):
     report = locked_report(db, report_id)
-    payload = public_payload(report)
+    payload = public_payload(report, request.incident)
+    if isinstance(payload, ReviewedPublicReportPayload) and not request.review_confirmed:
+        raise HTTPException(409, 'Explicit administrator publication review required')
     if request.expected_digest != payload_digest(payload):
         raise HTTPException(409, 'Preview changed; review it again')
     if db.scalar(select(ReportPublication.id).where(ReportPublication.report_id == report_id,
@@ -64,7 +92,8 @@ def publish(report_id: uuid.UUID, request: PublishRequest, db: Session = Depends
     try:
         db.flush()
         db.add(AuditLog(actor=db.info['actor'], action='report.publish', entity_type='report',
-                        entity_id=report_id, details=json.dumps({'publication_id': str(row.id)})))
+                        entity_id=report_id, details=json.dumps({'publication_id': str(row.id),
+                        'schema_version': payload.schema_version, 'review_confirmed': request.review_confirmed})))
         db.commit()
     except IntegrityError:
         db.rollback()

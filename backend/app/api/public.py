@@ -1,4 +1,4 @@
-"""Anonymous, read-only public API. No internal IDs, content or error details."""
+"""Anonymous, read-only public API. No internal IDs, raw source content or error details."""
 import uuid
 from datetime import datetime
 from typing import Literal
@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_session
 from app.models import ClassificationResult, CrawlJob, OnionSource, ReportPublication, SourceObservation
-from app.public_view.projections import PublicReportPayload, public_source_name, utc_date
+from app.public_view.projections import PublicReportContent, read_public_report, public_source_name, utc_date
 
 router = APIRouter(prefix='/api/public/v1', tags=['public'])
 
@@ -33,7 +33,7 @@ class ActivityPage(BaseModel):
 class PublishedReport(BaseModel):
     id: uuid.UUID
     published_at: datetime
-    content: PublicReportPayload
+    content: PublicReportContent
 
 
 class ReportPage(BaseModel):
@@ -45,7 +45,7 @@ class ReportPage(BaseModel):
 
 def published(row: ReportPublication) -> PublishedReport:
     return PublishedReport(id=row.id, published_at=utc_date(row.published_at),
-                           content=PublicReportPayload.model_validate(row.payload))
+                           content=read_public_report(row.payload))
 
 
 @router.get('/activity', response_model=ActivityPage)

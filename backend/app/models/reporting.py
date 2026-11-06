@@ -40,6 +40,18 @@ class Report(Base):
     source_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("onion_sources.id"), nullable=True)
     period_start: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
     period_end: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
-    # Snapshot only of sanitized counters, codes, UUIDs and public verification statuses.
+    # Immutable counters/codes/UUIDs plus an optional separately authored publication draft.
     snapshot: Mapped[dict] = mapped_column(JSON, nullable=False)
     created_at: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    @property
+    def title(self) -> str | None:
+        draft = self.snapshot.get('publication_draft', {})
+        value = draft.get('title') if isinstance(draft, dict) else None
+        return value[:160] if isinstance(value, str) else None
+
+    @property
+    def company_name(self) -> str | None:
+        draft = self.snapshot.get('publication_draft', {})
+        value = draft.get('company_name') if isinstance(draft, dict) else None
+        return value[:160] if isinstance(value, str) else None

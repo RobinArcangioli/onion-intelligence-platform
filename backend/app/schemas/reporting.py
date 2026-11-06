@@ -2,6 +2,7 @@
 from datetime import datetime, timezone, timedelta
 from typing import Literal
 import uuid
+from app.schemas.publication import PublicIncidentDraft
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
@@ -31,6 +32,7 @@ class AlertReview(BaseModel):
 
 
 class ReportCreate(BaseModel):
+    public_draft: PublicIncidentDraft | None = None
     model_config = ConfigDict(extra="forbid")
     source_id: uuid.UUID | None = None
     period_start: datetime
@@ -50,6 +52,8 @@ class ReportCreate(BaseModel):
 
 
 class ReportOut(ORMOut):
+    title: str | None = None
+    company_name: str | None = None
     id: uuid.UUID
     source_id: uuid.UUID | None
     period_start: datetime

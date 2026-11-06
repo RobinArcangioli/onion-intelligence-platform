@@ -1,4 +1,4 @@
-"""Authenticated alerts and on-demand, immutable metadata-only reports."""
+"""Authenticated alerts and immutable reports with optional authored public drafts."""
 import json
 import uuid
 from datetime import datetime, timezone
@@ -77,9 +77,12 @@ def review_alert(alert_id: uuid.UUID, payload: AlertReview,
 def create_report(payload: ReportCreate, db: Session = Depends(get_session)) -> Report:
     if payload.source_id is not None and db.get(OnionSource, payload.source_id) is None:
         raise HTTPException(404, "Source not found")
-    # Explicitly metadata-only, bounded snapshot at the instant of creation.
+    # Bounded documentary derivatives, with a separately authored draft if supplied.
     snapshot = build_snapshot(db, start=payload.period_start, end=payload.period_end,
                               source_id=payload.source_id, max_rows=payload.max_rows_per_type)
+    if payload.public_draft is not None:
+        # Authored context; never inferred from or copied wholesale out of a collected page.
+        snapshot['publication_draft'] = payload.public_draft.model_dump(mode='json')
     row = Report(source_id=payload.source_id, period_start=payload.period_start,
                  period_end=payload.period_end, snapshot=snapshot)
     db.add(row)

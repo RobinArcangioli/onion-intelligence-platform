@@ -26,7 +26,7 @@ export interface PublicReference { reference:string; mentions:number; source_cou
 export interface PublicReferenceEvidence { indicator_id:string; observation_id:string; source_id:string; observed_at:string; review_status:string; analyst_priority:string; confidence:number; evidence_codes:string[]; ruleset_version:string }
 export interface Correlation { indicator_id: string; observation_id: string; source_id: string; watchlist_id: string; occurrences: number; relevance_score: number }
 export interface Alert { id: string; source_id: string; observation_id: string; event_type: string; signal_code: string; priority: string; verification_status: string; relevance_score: number; status: string; created_at: string; acknowledged_at: string | null; resolved_at: string | null }
-export interface Report { id: string; source_id: string | null; period_start: string; period_end: string; created_at: string }
+export interface Report { title?: string | null; company_name?: string | null; id: string; source_id: string | null; period_start: string; period_end: string; created_at: string }
 export interface Watchlist { id: string; name: string; is_active: boolean; created_at: string }
 export interface Rule { id: string; watchlist_id: string; phrase: string; weight: number; is_active: boolean; created_at: string }
 export interface Audit { id: string; actor: string; action: string; details: Record<string, unknown>; created_at: string }
