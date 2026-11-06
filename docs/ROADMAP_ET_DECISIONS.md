@@ -40,9 +40,9 @@ sont les incréments suivants, avec revue de leur périmètre ci-dessous.
 | D11 | Métadonnées publiques par défaut ET rapports publiés explicitement par l’admin | Acté, réponse du propriétaire 2026-11-05 | Deux circuits distincts : données publiques automatiques bornées par D13 ; publication volontaire de rapports, aucun accès implicite aux autres rapports |
 | D12 | Même adresse web que l’admin, petit lien latéral « accès visiteur », sans connexion visiteur | Acté, réponse du propriétaire 2026-11-05 | Vue restreinte de l’interface et API de lecture publique ; connexion par jeton API individuel réservée aux accès internes autorisés ; exposition effective à préparer/tester avant déploiement |
 | D13 | Champs publics par défaut : date, statut, volumes et noms des sources ; sans adresse Onion | Acté, réponse du propriétaire 2026-11-05 | Liste de champs publique explicite, sans exposition des objets internes complets ; audit des noms de sources et des réponses avant mise en ligne |
-| D14 | Navigation assistée, une source à la fois, avec analyse déclenchée par l’opérateur depuis OIP | Acté, demande du propriétaire 2026-11-06 | Une page d’entrée configurable par source et des pages sélectionnées conservées dans le groupe de la marketplace |
+| D14 | Navigation assistée, un groupe de source à la fois, avec analyse déclenchée par l’opérateur depuis OIP | Acté, demande du propriétaire et clarification ultérieure | L’opérateur saisit le nom du groupe et ses URL. Toutes les URL du groupe ont le même statut |
 | D15 | L’opérateur colle l’URL finale et le texte visible dans OIP | Acté, réponse du propriétaire | Le bouton **Analyser cette page** valide le transfert explicite |
-| D16 | Remettre toutes les pages suivies dans la file à chaque nouvelle veille | Acté, réponse du propriétaire | L’opérateur confirme chaque ouverture et peut passer une page |
+| D16 | Remettre toutes les URL actives des groupes sélectionnés dans la file à chaque nouvelle veille | Acté, réponse du propriétaire et clarification ultérieure | L’opérateur confirme chaque ouverture et peut passer une URL |
 | D17 | Première version limitée aux pages accessibles sans compte | Acté, réponse du propriétaire | La veille couvre les pages accessibles après une attente ou un CAPTCHA effectué manuellement |
 
 La connexion existante par jeton API individuel est conforme au choix retenu :
@@ -191,32 +191,31 @@ catalogue réel dépend du parcours assisté MVP-01H.
 
 ### MVP-01H — Navigation Tor assistée et sélection de pages (P1, L)
 
-**État** — À FAIRE. Les pages d’entrée testées pour Cannaexpress, Black Ops et
+**État** — À FAIRE. Les URL testées pour Cannaexpress, Black Ops et
 Eden ont présenté une attente ou une vérification. Le collecteur actuel accepte
 les racines Onion et travaille avec son propre client HTTP. La session de Tor
 Browser est distincte et peut seule afficher la page atteinte après les gestes
 de l’opérateur.
 
-Le groupe porte le nom de la marketplace. Il présente **Page d’entrée** et
-**Pages suivies**. La page d’entrée est configurable et peut être un chemin Onion
-tel que `/catalogue`. Les pages suivies sont celles que l’opérateur a sélectionnées
-pour analyse. La navigation peut partir de n’importe laquelle des pages
-autorisées du groupe. Le changement de page d’entrée conserve les pages suivies
-et l’historique. Une page d’entrée analysée peut figurer dans les deux sections,
-avec une seule identité de page dans le groupe.
+Dans **Sources**, l’opérateur saisit le nom du groupe, par exemple celui de la
+marketplace, et ajoute les URL de son choix. Le groupe affiche une seule liste
+d’URL, toutes de même niveau. Une URL peut viser la racine Onion ou un chemin
+comme `/catalogue`. L’opérateur peut ajouter ou retirer des URL à tout moment.
+Chaque URL a son propre historique d’analyse.
 
 | Lot | Livrable | Critère d’acceptation |
 |---|---|---|
-| H01 — Modèle et migration | Une entrée par source, un registre de pages suivies et un lien entre page et observation. Validation des chemins Onion v3 et des hôtes autorisés par source. Réutilisation des URL existantes comme entrées initiales. | Une racine existante et une entrée à chemin fonctionnent. Deux sélections de la même page réutilisent sa fiche. Retirer une page de la liste active conserve ses observations, alertes et rapports. |
-| H02 — Parcours opérateur | Une file ordonnée, une source à la fois. OIP affiche la source, l’adresse cible et les actions **Ouvrir dans Tor Browser**, **Passer** et **Arrêter**. Chaque ouverture suit la confirmation de l’opérateur. Toutes les pages suivies rejoignent la file lors des veilles suivantes. OIP affiche **Analyser cette page** en dehors de Tor. | Après ouverture, l’opérateur effectue lui-même les étapes de navigation et de vérification. Il peut analyser plusieurs pages du groupe, puis passer à la source suivante. Fermer, refuser ou reprendre une session a un résultat explicite. |
+| H01 — Modèle et migration | Un groupe nommé manuellement, une liste unique d’URL et un lien entre URL et observation. Validation des chemins Onion v3 et des hôtes autorisés par groupe. Migrer les adresses existantes dans la liste de leur groupe. | Ajouter une racine et plusieurs chemins dans un même groupe. Une URL déjà présente réutilise sa fiche. Retirer une URL de la liste active conserve ses observations, alertes et rapports. |
+| H02 — Parcours opérateur | Une file ordonnée par groupe, avec toutes les URL actives des groupes sélectionnés. OIP affiche le groupe, l’adresse et les actions **Ouvrir dans Tor Browser**, **Passer** et **Arrêter**. Chaque ouverture suit la confirmation de l’opérateur. OIP affiche **Analyser cette page** en dehors de Tor. | L’opérateur peut confirmer ou passer chaque URL, naviguer et effectuer les vérifications, puis poursuivre la file. Fermer, refuser ou reprendre une session a un résultat explicite. |
 | H03 — Transfert de la page choisie | Prototype de lancement local sur Linux. L’opérateur colle l’URL finale et le texte visible dans OIP après avoir atteint la page sans compte, y compris après attente ou CAPTCHA manuel. | Le texte de la page atteinte est analysé même si un client HTTP séparé ne reçoit que la page d’attente. L’opérateur vérifie l’adresse et le texte collés. OIP refuse une adresse hors périmètre et traite uniquement le texte transmis. |
-| H04 — Analyse et rattachement | Une action crée ou retrouve la fiche de page, enregistre l’origine de l’observation et soumet le texte au moteur existant. Réutiliser les règles, la classification, les alertes et les rapports. | Enregistrement cohérent en cas de double clic, de doublon ou d’échec. Les changements et les alertes sont comparés à l’historique de la même page. Une nouvelle visite d’une page suivie reste déclenchée par l’opérateur. |
+| H04 — Analyse et rattachement | L’analyse crée ou retrouve l’URL finale dans la liste unique du groupe, enregistre l’origine de l’observation et soumet le texte au moteur existant. Réutiliser les règles, la classification, les alertes et les rapports. | Enregistrement cohérent en cas de double clic, de doublon ou d’échec. Les changements et les alertes sont comparés à l’historique de la même URL. |
 | H05 — Recette de bout en bout | D’abord un parcours de test avec une page d’attente et deux pages distinctes. Ensuite une marketplace réelle lorsque son catalogue est accessible. Exécution locale sur le port 8000. | L’opérateur confirme, navigue, analyse, retrouve la page sous la bonne marketplace, obtient une alerte sur une occurrence réelle et vérifie le rapport en administration. La vitrine affiche le rapport après revue et publication explicite, avec les seuls champs autorisés. |
 
 Commencer par H01 et valider le transfert de H03 sur une page de test avant
 de finaliser l’interface H02. H04 dépend du modèle et du contrat de transfert.
 H05 valide ensuite le parcours complet, puis une deuxième veille qui remet
-toutes les pages suivies dans la file, avec confirmation pour chaque ouverture.
+toutes les URL actives des groupes sélectionnés dans la file, avec confirmation
+pour chaque ouverture.
 
 **Contrat de capture** — L’opérateur colle l’URL finale et le texte visible de
 la page dans OIP, puis valide avec **Analyser cette page**. OIP applique des
@@ -232,7 +231,7 @@ La capture ne donne lieu à aucune nouvelle requête vers la marketplace par
 le worker. Les volumes et la provenance d’une capture doivent être distingués
 de ceux d’une observation HTTP directe. La recette couvre aussi l’expiration
 d’une session assistée, la révocation de la source en cours de session et le
-refus d’un accès visiteur aux pages suivies.
+refus d’un accès visiteur à la liste d’URL.
 
 ### MVP-02 — Qualifier file et scheduler inactif sur PostgreSQL (P1, M)
 
