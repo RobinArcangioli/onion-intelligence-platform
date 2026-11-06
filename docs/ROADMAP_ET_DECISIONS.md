@@ -42,9 +42,10 @@ sont les incréments suivants, avec revue de leur périmètre ci-dessous.
 | D12 | Même adresse web que l’admin, petit lien latéral « accès visiteur », sans connexion visiteur | Acté, réponse du propriétaire 2026-11-05 | Vue restreinte de l’interface et API de lecture publique ; connexion par jeton API individuel réservée aux accès internes autorisés ; exposition effective à préparer/tester avant déploiement |
 | D13 | Champs publics par défaut : date, statut, volumes et noms des sources ; sans adresse Onion | Acté, réponse du propriétaire 2026-11-05 | Liste de champs publique explicite, sans exposition des objets internes complets ; audit des noms de sources et des réponses avant mise en ligne |
 | D14 | Un groupe nommé manuellement par marketplace avec une liste unique d’URL | Acté, clarification du propriétaire | L’opérateur ajoute et retire des URL de même niveau |
-| D15 | **Visiter l’URL** ouvre Tor Browser sur demande pour aider à découvrir des adresses | Acté, dernière clarification du propriétaire | L’opérateur navigue dans Tor et ajoute dans OIP les URL de son choix. Cette action ne déclenche aucune analyse |
+| D15 | **Visiter l’URL** ouvre Tor Browser sur demande pour aider à découvrir des adresses | Acté, clarification du propriétaire | L’opérateur navigue dans Tor et choisit ensuite dans OIP d’ajouter l’URL seule ou de l’ajouter et de l’analyser selon D18 |
 | D16 | Une veille traite automatiquement les URL actives des groupes sélectionnés | Acté, dernière clarification du propriétaire | Le worker traite chaque adresse enregistrée, sans confirmation par URL |
 | D17 | Veille limitée aux pages accessibles sans compte dans la première version | Acté, réponse du propriétaire | L’opérateur peut gérer l’attente ou un CAPTCHA dans Tor Browser pendant la découverte. La veille signale une page bloquée |
+| D18 | L’opérateur peut analyser immédiatement une page atteinte manuellement dans Tor | Acté, dernière clarification du propriétaire | L’opérateur colle l’URL finale et le texte visible dans OIP. L’analyse explicite réutilise le moteur de veille et rattache les résultats à cette URL |
 
 La connexion existante par jeton API individuel est conforme au choix retenu :
 elle est **conservée**, avec les rôles, expiration, révocation et gouvernance des
@@ -210,20 +211,27 @@ moment. Chaque URL a son historique d’analyse.
 - **Visiter l’URL**, disponible depuis une ligne du groupe, propose d’ouvrir
   cette adresse dans Tor Browser. L’opérateur navigue, réalise les éventuelles
   vérifications et copie les nouvelles URL qu’il souhaite ajouter au même
-  groupe. L’ajout rend l’URL disponible pour une prochaine veille. La visite
-  et l’ajout ne déclenchent aucun job et ne transmettent aucun contenu de page.
+  groupe. **Ajouter l’URL** l’enregistre pour les prochaines veilles.
+- **Ajouter et analyser maintenant** enregistre ou retrouve l’URL dans le même
+  groupe, puis lance l’analyse du texte visible que l’opérateur a collé dans OIP
+  depuis Tor Browser. Le moteur produit les observations et les alertes à partir
+  de ce texte, sans refaire de requête vers le site. Le texte est traité en
+  mémoire et la provenance indique une capture opérateur. Une URL déjà
+  enregistrée peut être analysée de la même manière sans créer de doublon.
 
 | Lot | Livrable | Critère d’acceptation |
 |---|---|---|
 | H01 — Modèle et migration | Un groupe nommé manuellement, une liste unique d’URL et un lien entre URL et observation. Validation des URL Onion v3 et migration des adresses existantes dans leur groupe. | Une racine et plusieurs chemins coexistent dans le même groupe. Une URL identique n’est enregistrée qu’une fois par groupe. Retirer une URL conserve ses observations, alertes et rapports. |
 | H02 — Collecte par URL | Étendre la file et le transport Tor à l’adresse exacte enregistrée. Réutiliser les contrôles d’autorisation, les limites, l’arrêt d’urgence et le moteur d’analyse. | Une veille traite toutes les URL actives au moment du lancement. Les chemins restent distincts dans l’historique. Les liens présents dans les pages ne sont pas suivis. Un blocage ou une vérification est visible dans le résultat de l’URL. |
 | H03 — Aide à la découverte | Bouton **Visiter l’URL**, confirmation d’ouverture de Tor Browser sur Linux et saisie manuelle d’une nouvelle adresse dans le même groupe. | OIP ne lance Tor qu’après action de l’opérateur. L’ajout d’une URL, la visite et l’annulation laissent le nombre de jobs inchangé. Une URL ajoutée apparaît dans la prochaine veille. |
-| H04 — Recette de bout en bout | Sur le port 8000, tester un groupe avec une racine, un catalogue et une page bloquée, puis une marketplace réelle si son catalogue est accessible au worker. | La veille traite chaque URL sans intervention humaine. Une occurrence vérifiable crée une alerte et remonte au rapport. La vitrine expose le rapport après revue et publication explicite. |
+| H04 — Analyse immédiate | Ajouter dans OIP les champs URL finale et texte visible. Appliquer les contrôles de source et de contenu, puis réutiliser le moteur de veille. Rattacher l’observation et ses résultats à l’URL avec la provenance capture opérateur. | Une page atteinte après vérification manuelle peut être analysée alors qu’une requête du worker renverrait une page bloquée. L’analyse ne refait aucun accès au site. Une URL existante est réutilisée. Un double envoi ne produit aucun doublon. |
+| H05 — Recette de bout en bout | Sur le port 8000, tester l’ajout seul, l’analyse immédiate après une étape manuelle et une veille séparée sur le même groupe. | L’ajout seul ne crée pas d’observation. Une occurrence dans le texte transmis crée une alerte et remonte dans le rapport. La veille traite les URL actives indépendamment. La vitrine expose le rapport après revue et publication explicite. |
 
-H02 et H03 peuvent avancer après H01. La recette H04 couvre à la fois la
-découverte manuelle d’une URL et sa collecte lors d’une veille distincte.
+H02 et H03 peuvent avancer après H01. H04 utilise le formulaire de H03 et
+le moteur d’analyse existant. H05 valide les deux modes d’analyse.
 La validation des adresses refuse les secrets de session dans les URL.
-Les URL et les observations restent dans le périmètre interne de D11–D13.
+Les cookies et les données de session restent dans Tor Browser. Les URL et
+les observations restent dans le périmètre interne de D11–D13.
 
 ### MVP-02 — Qualifier file et scheduler inactif sur PostgreSQL (P1, M)
 
