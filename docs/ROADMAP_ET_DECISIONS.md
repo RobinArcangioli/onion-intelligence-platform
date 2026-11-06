@@ -171,10 +171,20 @@ vitrine anonyme affiche la fiche publiée et son retrait rend le lien inaccessib
 Une revendication observée garde son statut de signal non vérifié.
 
 **Acceptation locale** par la recette Playwright et une reproduction manuelle sur
-le port 8012. Vérifier les deux cas, le refus avant publication, l’absence de contenu
+l’adresse OIP unique, port 8000. Vérifier les deux cas, le refus avant publication, l’absence de contenu
 interne et la révocation après retrait. Cette recette utilise uniquement des
 fixtures et prépare le contrôle de la vitrine dans le futur environnement de
 recette prévu par MVP-05.
+
+### MVP-01T — Amorcer la veille réelle avec un catalogue de marketplaces
+
+Importer les dix premières fiches **Markets** de Tor.watch via l’outil opérateur.
+Pour chacune, vérifier les miroirs affichés sur la fiche, retenir le premier
+accessible et créer une source candidate prioritaire. Conserver le résultat
+des sondes côté opérateur. La décision d’approuver et d’activer la collecte
+reste distincte. La prochaine recette réelle déclenchera une veille manuelle
+sur une source approuvée et suivra les observations, les éventuelles alertes et
+le rapport jusqu’à la revue de publication.
 
 ### MVP-02 — Qualifier file et scheduler inactif sur PostgreSQL (P1, M)
 
@@ -311,7 +321,7 @@ PostgreSQL M4-B un test et M7-C 17 tests réussis, aucun skip dans les jobs PG.
 La migration `0018` et l’unicité de publication concurrente sont qualifiées sur
 PostgreSQL 17. La recette opérateur reste la prochaine vérification utilisateur.
 La recette manuelle synthétique est disponible via `scripts/serve-visitor-demo.py`
-(port local 8010), distinct du tunnel OVH 8001. Après qualification, la prochaine
+sur le port 8000 lorsque la passerelle locale est arrêtée. Après qualification, la prochaine
 étape technique sera **MVP-02** (file/worker PostgreSQL), puis MVP-03/04 selon les
 dépendances ; une validation opérateur de la vitrine reste à recueillir. Aucune activation ou intervention OVH
 n’est réalisée par cette stabilisation.

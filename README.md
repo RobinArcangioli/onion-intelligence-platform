@@ -38,18 +38,20 @@ est validée sur PostgreSQL 17 par les quatre jobs verts du
 [run 42025061147](https://github.com/RobinArcangioli/onion-intelligence-platform/actions/runs/42025061147),
 commit applicatif `e75d678`. Elle n’est pas appliquée à OVH.
 
-Pour tester sans données réelles après build frontend :
-`.venv/bin/python scripts/serve-visitor-demo.py`, puis ouvrir
-[la démonstration locale](http://127.0.0.1:8010) et cliquer **Accès visiteur**.
+L’adresse locale OIP est [127.0.0.1:8000](http://127.0.0.1:8000). Pour tester
+sans données réelles après le build frontend, libérer ce port en arrêtant la
+passerelle locale, puis lancer `.venv/bin/python scripts/serve-visitor-demo.py`.
+Ouvrir la même adresse et cliquer **Accès visiteur**.
 Ce serveur utilise une base synthétique temporaire et n’accepte pas les jetons
 opérationnels. Pour son admin de démonstration uniquement, le jeton de fixture
 est `oip_CI_SYNTHETIC_NOT_A_REAL_OPERATOR_CREDENTIAL`. La vitrine synchronise
-les publications et permet de les ouvrir via **Consulter le rapport**. Le tunnel OVH sur `8001` montre toujours la version déployée.
+les publications et permet de les ouvrir via **Consulter le rapport**.
 
 ### Simulation complète de deux fuites fictives
 
-Après le build frontend, lancer `.venv/bin/python scripts/serve-visitor-demo.py --simulation --port 8012`
-et ouvrir [la simulation locale](http://127.0.0.1:8012). La base temporaire démarre avec
+Après le build frontend, libérer le port 8000, lancer
+`.venv/bin/python scripts/serve-visitor-demo.py --simulation` et ouvrir
+[l’adresse locale OIP](http://127.0.0.1:8000). La base temporaire démarre avec
 deux sources fictives et aucun rapport. Utiliser le jeton de fixture indiqué ci-dessus.
 
 1. Dans **Rapports**, cliquer sur **Lancer les deux veilles simulées**. Dans **Alertes**,
@@ -63,6 +65,22 @@ deux sources fictives et aucun rapport. Utiliser le jeton de fixture indiqué ci
 Les deux cas représentent des annonces fictives portant sur 2 500 fiches clients
 (ALPHA-01) et 750 dossiers RH (BETA-02). Le worker traite deux réponses HTML locales.
 Le visiteur lit uniquement la fiche relue et ses compteurs publics.
+
+### Découverte prioritaire de marketplaces
+
+Avec le worker Tor de la stack locale en cours d’exécution, lancer
+`.venv/bin/python scripts/import-torwatch.py` pour sonder les dix premières
+fiches de la section Markets dans l’ordre du catalogue. Ajouter `--save` pour
+enregistrer le premier miroir admissible par fiche dans **Sources**, sous
+`MARKETPLACE` avec la priorité P5. Le test exige une réponse HTTP 200 de type
+HTML ou texte via Tor. La collecte reste soumise à l’approbation de l’admin.
+
+Si Tor.watch sert une page de vérification au client HTTP, utiliser
+`--catalog chemin.json` avec les dix fiches relevées dans le navigateur. Le
+fichier est un tableau d’objets `{path, name, mirrors}` en ordre d’affichage.
+`path` est le chemin `/service/…` de la fiche et `mirrors` contient les racines
+Onion de sa section **Service URLs**, dans l’ordre affiché. Conserver ce fichier
+en dehors du dépôt.
 
 Les découvertes ne sont jamais suivies automatiquement. Les limites de transport,
 les autorisations de sources, l'arrêt d'urgence et la minimisation des contenus

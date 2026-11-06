@@ -196,9 +196,32 @@ des observations et des alertes internes. Les publications `PUBLIC_TOTALS_V1` re
 lisibles. La tête Alembic reste `0018`.
 
 La [recette manuelle](../README.md#simulation-complète-de-deux-fuites-fictives)
-utilise le port 8012. La recette Playwright utilise le port 8013.
+utilisait le port 8012 avant la consolidation sur le port 8000. La recette
+Playwright utilise le port 8013 le temps de son exécution.
 Validations locales : 5 scénarios Playwright réussis, build TypeScript/Vite réussi,
 373 tests backend réussis et 6 tests PostgreSQL ignorés dans cette exécution.
+
+### Accès local unique et découverte Tor.watch
+
+L’interface OIP locale utilise `127.0.0.1:8000`. Les anciennes instances de
+démonstration et tunnels locaux sur les ports 8001 et 8010 à 8013 sont fermés
+hors tests. Pour démarrer le serveur de démonstration, libérer la même adresse
+en arrêtant la passerelle de la stack locale.
+
+L’outil opérateur `scripts/import-torwatch.py` lit les dix premières fiches
+**Markets**, puis les miroirs de leur bloc **Service URLs**. Le premier miroir
+par fiche répondant en HTTP 200 HTML ou texte via le proxy Tor est candidat.
+La sonde lit le statut et les en-têtes. L’option `--save` inscrit les nouvelles
+sources en catégorie `MARKETPLACE`, priorité P5, avec provenance dans l’audit.
+La collecte et la planification restent désactivées pour ces candidats tant
+qu’un admin n’a pas approuvé la source et activé l’usage souhaité.
+
+Première passe réelle locale : dix fiches lues dans le navigateur, après
+réponse de vérification du site au client HTTP. Trois fiches ont fourni un
+miroir admissible. Cannaexpress et Eden ont été ajoutées à la base locale et
+Black Ops était déjà enregistrée. Sept fiches restent sans miroir admissible
+sur cette passe. Les validations ciblées de l’import et du transport passent
+(28 tests). La recette avec collecte réelle et rapport est une étape distincte.
 
 ## 3. Architecture présente
 

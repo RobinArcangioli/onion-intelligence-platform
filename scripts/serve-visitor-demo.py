@@ -21,9 +21,9 @@ for key in list(os.environ):
         del os.environ[key]
 
 parser=argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--port',type=int,default=8010)
+parser.add_argument('--port',type=int,default=8000)
 parser.add_argument('--simulation',action='store_true',help='Start the complete fictional leak workflow')
-args=parser.parse_args() if __name__=='__main__' else argparse.Namespace(port=8010,simulation=False)
+args=parser.parse_args() if __name__=='__main__' else argparse.Namespace(port=8000,simulation=False)
 if not 1024 <= args.port <= 65535:
     parser.error('Use an unprivileged local port')
 
