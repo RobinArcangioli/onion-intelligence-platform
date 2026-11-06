@@ -40,6 +40,7 @@ export async function request<T>(key: string, path: string, init: RequestInit = 
 }
 export const api = {
   get: <T>(key: string, path: string) => request<T>(key, path),
+  delete: (key: string, path: string) => request<void>(key, path, { method: 'DELETE' }),
   post: <T>(key: string, path: string, body: unknown) => request<T>(key, path, { method: 'POST', body: JSON.stringify(body) }),
   put: <T>(key: string, path: string, body: unknown) => request<T>(key, path, { method: 'PUT', body: JSON.stringify(body) }),
   patch: <T>(key: string, path: string, body: unknown) => request<T>(key, path, { method: 'PATCH', body: JSON.stringify(body) }),

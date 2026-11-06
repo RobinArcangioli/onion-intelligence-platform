@@ -20,7 +20,7 @@ def test_publication_upgrade_preserves_private_reports_and_downgrade(tmp_path):
     with engine.begin() as db:
         db.execute(text("INSERT INTO reports(id,period_start,period_end,snapshot) VALUES "
                         "('11111111111141118111111111111111','2026-01-01','2026-01-02','{}')"))
-    migrate('upgrade','head')
+    migrate('upgrade','0018_public_report_publications')
     with engine.connect() as db:
         assert db.scalar(text('SELECT COUNT(*) FROM reports'))==1
         assert db.scalar(text('SELECT COUNT(*) FROM report_publications'))==0

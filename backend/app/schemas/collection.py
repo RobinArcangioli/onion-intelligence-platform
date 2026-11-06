@@ -1,7 +1,7 @@
 """Réponses bornées, sans corps HTML, sans secret ni preuve présumée."""
 import uuid
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer
 
 
 class ORMOutput(BaseModel):
@@ -11,6 +11,7 @@ class ORMOutput(BaseModel):
 class JobOut(ORMOutput):
     id: uuid.UUID
     source_id: uuid.UUID
+    page_id: uuid.UUID | None = None
     status: str
     error_code: str | None
     started_at: datetime | None
@@ -22,7 +23,9 @@ class ObservationOut(ORMOutput):
     id: uuid.UUID
     job_id: uuid.UUID
     source_id: uuid.UUID
-    http_status: int
+    page_id: uuid.UUID | None = None
+    origin: str = "TOR_HTTP"
+    http_status: int | None
     content_type: str
     response_bytes: int
     title: str
@@ -34,6 +37,11 @@ class ObservationOut(ORMOutput):
     keyword_hits: int
     discovered_links: int
     created_at: datetime
+
+    @field_serializer("http_status")
+    def serialize_http_status(self, status: int | None) -> int | None:
+        # Historic storage requires an integer; captures have no HTTP response.
+        return status if self.origin == "TOR_HTTP" else None
 
 
 class DiscoveryOut(ORMOutput):

@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.collector.policy import (admission_lock, emergency_active, pending_full,
                                   read_policy, source_restriction)
 from app.models import AuditLog, CrawlJob, OnionSource, SourceSchedule, ScheduleDecision
-from app.security.onion import canonical_onion_root
+from app.security.onion import canonical_onion_page
 
 
 def utc(value: datetime) -> datetime:
@@ -39,7 +39,7 @@ def source_allowed(source: OnionSource | None) -> bool:
                                   source.approved_for_collection and source.deleted_at is None):
         return False
     try:
-        return canonical_onion_root(source.canonical_url) == source.canonical_url
+        return canonical_onion_page(source.canonical_url) == source.canonical_url
     except ValueError:
         return False
 
@@ -103,7 +103,7 @@ def dispatch_due(factory: sessionmaker[Session], *, now: datetime | None = None,
                     ScheduleDecision.created_at < start + timedelta(days=1),
                 )) or 0
                 active = db.scalar(select(CrawlJob.id).where(
-                    CrawlJob.source_id == source_id, CrawlJob.status.in_(("PENDING", "RUNNING"))))
+                    CrawlJob.source_id == source_id, CrawlJob.status.in_(("PENDING", "RUNNING", "WAITING"))))
                 policy = read_policy()
                 if count >= schedule.daily_budget:
                     decision = "DAILY_BUDGET"

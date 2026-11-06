@@ -2,7 +2,7 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 from app.db.session import get_session
 from app.models import CrawlJob, DiscoveredOnion, SourceObservation
@@ -27,12 +27,14 @@ def collection_metrics(db: Session = Depends(get_session)) -> dict:
     counts = {state: 0 for state in ("PENDING", "RUNNING", "COMPLETED", "FAILED")}
     for state, count in rows:
         if state in counts:
-            counts[state] = count
+            counts[state] += count
+        elif state == "WAITING":
+            counts["PENDING"] += count
     cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
     recent_failed = db.scalar(select(func.count(CrawlJob.id)).where(
         CrawlJob.status == "FAILED", CrawlJob.finished_at >= cutoff)) or 0
     oldest = db.scalar(select(func.min(CrawlJob.created_at))
-                       .where(CrawlJob.status == "PENDING"))
+                       .where(CrawlJob.status.in_(("PENDING", "WAITING"))))
     oldest_seconds = max(0, int((datetime.now(timezone.utc) - (
         oldest.replace(tzinfo=timezone.utc) if oldest.tzinfo is None else oldest
     )).total_seconds())) if oldest else None
@@ -57,7 +59,8 @@ def latest_jobs(
         CrawlJob.id.label("id"),
         func.row_number().over(
             partition_by=CrawlJob.source_id,
-            order_by=(CrawlJob.created_at.desc(), CrawlJob.id.desc()),
+            order_by=(case((CrawlJob.status.in_(("PENDING", "RUNNING", "WAITING")), 0), else_=1),
+                      CrawlJob.created_at.desc(), CrawlJob.id.desc()),
         ).label("rn"),
     ).where(CrawlJob.source_id.in_(source_ids)).subquery())
     return list(db.scalars(select(CrawlJob).join(ranks, CrawlJob.id == ranks.c.id)

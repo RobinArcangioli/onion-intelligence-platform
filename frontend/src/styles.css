@@ -49,3 +49,9 @@
 .incident-summary {margin:18px 0;}.incident-summary h3 {font-size:22px;margin:16px 0;}.incident-summary h4 {margin:20px 0 8px;}
 .incident-facts {display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin:20px 0;}.incident-facts dt {font-size:12px;color:var(--muted);}.incident-facts dd {margin:5px 0;font-weight:600;}
 .incident-text {white-space:pre-wrap;line-height:1.7;}.simulation-label {color:var(--warning);font-size:12px;font-weight:650;}
+
+.source-page-list { padding: 0; list-style: none; }
+.source-page-list li { display: flex; gap: 0.75rem; align-items: center; justify-content: space-between; padding: 0.65rem 0; }
+.source-page-list code, .source-page-visit code { overflow-wrap: anywhere; }
+.source-page-list .row-actions { flex-shrink: 0; }
+.source-page-visit { padding: 0.75rem 0; }

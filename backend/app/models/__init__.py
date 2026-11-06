@@ -1,9 +1,9 @@
-from .source import OnionSource
+from .source import OnionSource, SourcePage
 from .audit import AuditLog
 from .collection import CrawlJob, SourceObservation, DiscoveredOnion
 from .intelligence import Watchlist, WatchlistRule, KeywordMatch
 
-__all__ = ["OnionSource", "AuditLog", "CrawlJob", "SourceObservation", "DiscoveredOnion", "Watchlist", "WatchlistRule", "KeywordMatch", "ClassificationResult", "ThreatIndicator", "IocCandidate", "Alert", "Report"]
+__all__ = ["OnionSource", "SourcePage", "AuditLog", "CrawlJob", "SourceObservation", "DiscoveredOnion", "Watchlist", "WatchlistRule", "KeywordMatch", "ClassificationResult", "ThreatIndicator", "IocCandidate", "Alert", "Report"]
 
 from .cti import ClassificationResult, ThreatIndicator, IocCandidate
 

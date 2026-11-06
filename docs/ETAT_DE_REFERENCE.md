@@ -223,6 +223,24 @@ Black Ops était déjà enregistrée. Sept fiches restent sans miroir admissible
 sur cette passe. Les validations ciblées de l’import et du transport passent
 (28 tests). La recette avec collecte réelle et rapport est une étape distincte.
 
+### Registre d’URL et analyse de la page atteinte dans Tor
+
+La migration `0019_source_pages` place les adresses existantes dans la liste
+de leur groupe. Une veille déclenchée sur un groupe prend en charge ses URL
+actives et conserve une collecte en cours à la fois pour ce groupe.
+Une URL retirée quitte la liste active et son historique reste consultable.
+
+L’admin peut ajouter une URL seule ou analyser immédiatement le texte visible
+qu’il colle depuis Tor Browser. L’analyse partage les règles, les alertes et
+les rapports du collecteur, conserve la provenance opérateur et traite le
+texte en mémoire. La vitrine peut afficher les compteurs d’un rapport publié
+selon la procédure habituelle. Les paramètres et fragments d’URL sont refusés.
+
+La recette synthétique vérifie l’ajout seul, l’analyse immédiate, la veille
+sur trois URL, le signalement d’une page de vérification et la publication
+des compteurs. La recette avec un catalogue réel reste à faire. Le lanceur
+Linux s’enregistre séparément sur le poste où Tor Browser est installé.
+
 ## 3. Architecture présente
 
 Python 3.12, FastAPI, SQLAlchemy/Alembic, PostgreSQL 17 ; interface React 19 /

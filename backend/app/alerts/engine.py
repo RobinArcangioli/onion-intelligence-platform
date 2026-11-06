@@ -29,8 +29,9 @@ class AlertSignal:
     verification_status: str
 
 
-def _fingerprint(observation: SourceObservation, signal: AlertSignal) -> str:
-    raw = "|".join((str(observation.source_id), observation.text_sha256,
+def _fingerprint(observation: SourceObservation, signal: AlertSignal, *, legacy_scope: bool) -> str:
+    raw = "|".join((str(observation.source_id if legacy_scope or observation.page_id is None else observation.page_id),
+                    observation.text_sha256,
                     signal.event_type, signal.stable_key))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
@@ -73,7 +74,7 @@ def observation_signals(db: Session, observation: SourceObservation) -> list[Ale
     return signals[:MAX_ALERTS_PER_OBSERVATION]
 
 
-def emit_observation_alerts(db: Session, observation: SourceObservation) -> int:
+def emit_observation_alerts(db: Session, observation: SourceObservation, *, legacy_scope: bool = False) -> int:
     """Flush dependent findings, then insert unique alerts in the same transaction.
 
     Savepoints handle racing identical fingerprints without rolling back a
@@ -82,7 +83,7 @@ def emit_observation_alerts(db: Session, observation: SourceObservation) -> int:
     db.flush()
     created = 0
     for signal in observation_signals(db, observation):
-        digest = _fingerprint(observation, signal)
+        digest = _fingerprint(observation, signal, legacy_scope=legacy_scope)
         if db.scalar(select(Alert.id).where(Alert.fingerprint == digest)) is not None:
             continue
         try:

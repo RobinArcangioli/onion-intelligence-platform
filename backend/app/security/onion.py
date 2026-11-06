@@ -40,3 +40,22 @@ def canonical_onion_root(raw: str) -> str:
     if version != 3 or checksum != expected:
         raise ValueError("Checksum Onion v3 invalide")
     return f"{parsed.scheme}://{hostname.lower()}/"
+
+
+# Keep the root validator for discovery/import callers. Collection addresses
+# additionally accept ordinary paths, without query strings or fragments.
+_ONION_PATH = re.compile(r"/[A-Za-z0-9_~./-]*")
+
+
+def canonical_onion_page(raw: str) -> str:
+    if not isinstance(raw, str) or len(raw) > 255:
+        raise ValueError("URL Onion invalide")
+    raw = raw.strip()
+    if any(ord(char) <= 32 or ord(char) == 127 for char in raw) or "?" in raw or "#" in raw:
+        raise ValueError("L’adresse ne doit contenir ni paramètres, ni fragment, ni espace")
+    parsed = urlsplit(raw)
+    root = canonical_onion_root(f"{parsed.scheme}://{parsed.netloc}/")
+    path = parsed.path or "/"
+    if not _ONION_PATH.fullmatch(path) or "//" in path or any(part in {".", ".."} for part in path.split("/")):
+        raise ValueError("Chemin Onion invalide")
+    return root.rstrip("/") + path

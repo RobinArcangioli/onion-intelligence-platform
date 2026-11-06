@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
-from app.models import CrawlJob
+from app.models import CrawlJob, SourceObservation
 
 # PostgreSQL transaction-scoped advisory mutex serializes global queue counters.
 # It is not a substitute for the per-source row lock and unique active-job index.
@@ -65,7 +65,7 @@ def admission_lock(db: Session) -> None:
 
 
 def pending_full(db: Session, policy: CollectionPolicy) -> bool:
-    return (db.scalar(select(func.count()).select_from(CrawlJob).where(CrawlJob.status == "PENDING")) or 0) >= policy.max_pending
+    return (db.scalar(select(func.count(func.distinct(CrawlJob.source_id))).where(CrawlJob.status.in_(("PENDING", "WAITING")))) or 0) >= policy.max_pending
 
 
 def running_full(db: Session, policy: CollectionPolicy) -> bool:
@@ -83,7 +83,10 @@ def source_restriction(db: Session, source_id, policy: CollectionPolicy, *, now:
     configured interval). Only a NEW manual enqueue after expiry may proceed.
     """
     now = now or datetime.now(timezone.utc)
-    latest = db.scalars(select(CrawlJob).where(CrawlJob.source_id == source_id)
+    captured = select(SourceObservation.id).where(
+        SourceObservation.job_id == CrawlJob.id, SourceObservation.origin == "OPERATOR_CAPTURE",
+    ).exists()
+    latest = db.scalars(select(CrawlJob).where(CrawlJob.source_id == source_id, ~captured)
                         .order_by(CrawlJob.created_at.desc(), CrawlJob.id.desc())
                         .limit(max(1, policy.circuit_failures))).all()
     if latest and policy.source_cooldown_seconds:

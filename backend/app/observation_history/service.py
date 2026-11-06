@@ -5,7 +5,7 @@ import uuid
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
-from app.models import CrawlJob, OnionSource, SourceObservation
+from app.models import CrawlJob, OnionSource, SourceObservation, SourcePage
 from app.schemas.collection import ObservationOut
 
 # Deliberate search scope: bounded title/description ONLY. The transient
@@ -69,14 +69,18 @@ def search(db: Session, *, source_id: uuid.UUID | None, category: str | None,
 
 def provenance(db: Session, observation: SourceObservation) -> dict:
     # The ordering is stable even when several records share a timestamp.
-    prev = db.scalar(select(SourceObservation).where(
+    source = db.get(OnionSource, observation.source_id)
+    page = db.get(SourcePage, observation.page_id) if observation.page_id else None
+    same_page = SourceObservation.page_id == observation.page_id
+    if page and source and page.url == source.canonical_url:
+        same_page = or_(same_page, SourceObservation.page_id.is_(None))
+    prev = db.scalar(select(SourceObservation).where(same_page,
         SourceObservation.source_id == observation.source_id,
         or_(SourceObservation.created_at < observation.created_at,
             and_(SourceObservation.created_at == observation.created_at,
                  SourceObservation.id < observation.id)))
         .order_by(SourceObservation.created_at.desc(), SourceObservation.id.desc()).limit(1))
     job = db.get(CrawlJob, observation.job_id)
-    source = db.get(OnionSource, observation.source_id)
     # The source and job FKs should exist. Do not leak a broken data join as 500.
     changes = ({key: {"before": getattr(prev, key), "after": getattr(observation, key)}
                 for key in COMPARABLE if getattr(prev, key) != getattr(observation, key)} if prev else {})
@@ -84,6 +88,7 @@ def provenance(db: Session, observation: SourceObservation) -> dict:
         "observation": ObservationOut.model_validate(observation).model_dump(mode='json'),
         "source": {"id": str(observation.source_id), "name": source.name if source else None,
                    "category": source.category if source else None},
+        "page": {"id": str(page.id), "url": page.url} if page else None,
         "job": {"id": str(observation.job_id), "status": job.status if job else None,
                 "started_at": _time(job.started_at).isoformat() if job and job.started_at else None,
                 "finished_at": _time(job.finished_at).isoformat() if job and job.finished_at else None},

@@ -37,7 +37,7 @@ def test_index_upgrade_downgrade_preserves_rows(tmp_path):
         assert 'ix_alerts_observation_id' in {i['name'] for i in inspect(conn).get_indexes('alerts')}
         assert 'ix_audit_logs_entity_id' in {i['name'] for i in inspect(conn).get_indexes('audit_logs')}
         assert conn.scalar(text('SELECT count(*) FROM source_observations')) == 1
-        assert conn.scalar(text('SELECT version_num FROM alembic_version')) == '0018_public_report_publications'
+        assert conn.scalar(text('SELECT version_num FROM alembic_version')) == '0019_source_pages'
     alembic('downgrade', '0011_observation_metadata_fts')
     with engine.connect() as conn:
         indexes = {i['name'] for i in inspect(conn).get_indexes('source_observations')}

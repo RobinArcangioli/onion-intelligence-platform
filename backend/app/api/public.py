@@ -5,7 +5,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import or_, func, select
 from sqlalchemy.orm import Session
 
 from app.db.session import get_session
@@ -60,7 +60,8 @@ def activity(limit: int = Query(20, ge=1, le=50), offset: int = Query(0, ge=0, l
              .outerjoin(SourceObservation, SourceObservation.job_id == CrawlJob.id)
              .where(CrawlJob.status.in_(['COMPLETED', 'FAILED']),
                     OnionSource.deleted_at.is_(None), OnionSource.is_active.is_(True),
-                    OnionSource.approved_for_collection.is_(True), ~protected))
+                    OnionSource.approved_for_collection.is_(True), ~protected,
+                    or_(SourceObservation.origin.is_(None), SourceObservation.origin == "TOR_HTTP")))
     total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
     rows = db.execute(query.order_by(func.coalesce(CrawlJob.finished_at, CrawlJob.created_at).desc(), CrawlJob.id.desc())
                       .limit(limit).offset(offset)).all()

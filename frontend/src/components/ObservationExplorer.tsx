@@ -8,6 +8,7 @@ import { DateCell, Empty, Icon, Mono, PageHead, Pager, Panel, Status } from './u
 
 type Item = Observation & {source_name:string;source_category:string};
 type Provenance = {
+  page: {id: string; url: string} | null;
   observation:Observation; source:{id:string;name:string|null;category:string|null};
   job:{id:string;status:string|null;started_at:string|null;finished_at:string|null};
   previous_observation_id:string|null; hash_changed:boolean|null;
@@ -66,6 +67,8 @@ export function ObservationExplorer({token,refresh}: {token:string;refresh:numbe
         <p>Observation : <Mono value={details.observation.id}/> · {dateTime(details.observation.created_at)}</p>
         <p>Précédente : {details.previous_observation_id?<Mono value={details.previous_observation_id}/>: 'aucune'}</p>
         <p>Empreinte : <strong>{details.hash_changed===null?'première observation':details.hash_changed?'modifiée':'identique'}</strong></p>
+        <p className="small">{details.observation.origin === 'OPERATOR_CAPTURE' ? 'Capture opérateur' : 'Collecte via Tor'}
+          {details.page && <> · <Mono value={details.page.url}/></>}</p>
         <div className="table-scroller"><table><thead><tr><th>Champ conservé</th><th>Avant</th><th>Après</th></tr></thead><tbody>{Object.entries(details.metadata_changes).map(([key,v])=><tr key={key}><td>{key}</td><td>{String(v.before)}</td><td>{String(v.after)}</td></tr>)}{!Object.keys(details.metadata_changes).length&&<tr><td colSpan={3}>Aucune différence de métadonnées comparable.</td></tr>}</tbody></table></div>
         <p className="page-footnote">{details.limitations}</p>
       </section></div>}

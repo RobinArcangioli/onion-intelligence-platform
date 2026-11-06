@@ -26,7 +26,7 @@ from app.security.api_key import fingerprint
 
 BACKEND = Path(__file__).resolve().parents[1]
 EXPECTED_DB = "oip_m7c_test"
-REVISION = "0018_public_report_publications"
+REVISION = "0019_source_pages"
 
 
 def safe_test_dsn(raw: str):

@@ -6,8 +6,9 @@ export interface Source {
   is_active: boolean; priority: number; created_at: string; updated_at: string;
   deleted_at: string | null;
 }
+export interface SourcePage { id: string; url: string; status: string | null; error_code: string | null }
 export interface Observation {
-  id: string; job_id: string; source_id: string; http_status: number; content_type: string;
+  id: string; job_id: string; source_id: string; page_id: string | null; origin: string; http_status: number | null; content_type: string;
   response_bytes: number; title: string; description: string; text_sha256: string;
   text_length: number; change_status: string; relevance_score: number;
   keyword_hits: number; discovered_links: number; created_at: string;

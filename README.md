@@ -66,6 +66,31 @@ Les deux cas représentent des annonces fictives portant sur 2 500 fiches client
 (ALPHA-01) et 750 dossiers RH (BETA-02). Le worker traite deux réponses HTML locales.
 Le visiteur lit uniquement la fiche relue et ses compteurs publics.
 
+### Gérer les URL d’une marketplace
+
+Dans **Sources → Gérer les URL**, ajoute ou retire les adresses du groupe.
+Le bouton **Collecter** soumet toutes ses URL actives au worker Tor. Une
+vérification de navigateur reconnue apparaît comme un échec sur l’URL concernée.
+La file conserve une collecte en cours par groupe.
+
+**Visiter l’URL** affiche l’adresse et demande de confirmer son ouverture dans
+Tor Browser. Une fois la page atteinte, colle son URL finale dans OIP. Utilise
+**Ajouter l’URL** pour l’enregistrer seule ou colle aussi le texte visible et
+clique **Ajouter et analyser maintenant**. OIP analyse ce texte en mémoire
+et indique **Capture opérateur** dans la provenance de l’observation.
+Les adresses acceptées sont des URL Onion v3 HTTP(S) avec un chemin simple.
+Les paramètres et fragments sont refusés.
+
+Sur Linux, le bouton d’ouverture utilise le lanceur Tor Browser installé
+sur le poste. Pour enregistrer le lien local depuis le dépôt, indiquer le
+chemin réel de l’exécutable `start-tor-browser`.
+
+```sh
+python3 scripts/open-tor-browser.py --install --browser /chemin/vers/Browser/start-tor-browser
+```
+
+Sans lanceur enregistré, copie l’adresse affichée et ouvre-la dans Tor Browser.
+
 ### Découverte prioritaire de marketplaces
 
 Avec le worker Tor de la stack locale en cours d’exécution, lancer

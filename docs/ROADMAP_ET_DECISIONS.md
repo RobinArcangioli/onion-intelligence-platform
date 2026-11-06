@@ -193,9 +193,9 @@ catalogue réel dépend du registre et de la collecte par URL de MVP-01H.
 
 ### MVP-01H — Groupes d’URL, veille et aide à la découverte dans Tor (P1, L)
 
-**État** — À FAIRE. Le collecteur actuel accepte les adresses Onion racines.
-Les URL testées pour Cannaexpress, Black Ops et Eden ont présenté une attente
-ou une vérification.
+**État** — Implémenté et validé sur données synthétiques. La recette opérateur
+avec un catalogue réel reste à faire. Les URL testées pour Cannaexpress,
+Black Ops et Eden ont présenté une attente ou une vérification.
 
 Dans **Sources**, l’opérateur crée un groupe au nom de la marketplace et
 y saisit les URL qu’il souhaite surveiller. Chaque groupe affiche une liste

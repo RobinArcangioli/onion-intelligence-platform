@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.security.onion import canonical_onion_root
+from app.security.onion import canonical_onion_page
 
 
 class StrictSchema(BaseModel):
@@ -24,7 +24,7 @@ class SourceCreate(StrictSchema):
     @field_validator("url")
     @classmethod
     def validate_url(cls, value: str) -> str:
-        return canonical_onion_root(value)
+        return canonical_onion_page(value)
 
     @field_validator("name")
     @classmethod
@@ -153,3 +153,33 @@ class SourceImportRequest(StrictSchema):
 class SourceImportResult(BaseModel):
     total: int
     items: list[SourceOut]
+
+
+class SourcePageAdd(StrictSchema):
+    url: str
+
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, value: str) -> str:
+        return canonical_onion_page(value)
+
+
+class SourcePageCapture(SourcePageAdd):
+    request_id: uuid.UUID
+    text: str = Field(min_length=1, max_length=100_000)
+
+    @field_validator("text")
+    @classmethod
+    def validate_text(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Texte visible requis")
+        return value
+
+
+class SourcePageOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    url: str
+    status: str | None = None
+    error_code: str | None = None

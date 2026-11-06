@@ -1,4 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 from app.api.health import router as health_router
 from app.api.sources import router as sources_router
@@ -45,3 +48,10 @@ async def add_security_headers(request, call_next):
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
     return response
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request: Request, exc: RequestValidationError):
+    if request.url.path.startswith("/api/v1/sources/") and request.url.path.endswith("/pages/capture"):
+        return JSONResponse({"detail": "URL Onion ou texte visible invalide."}, status_code=422)
+    return await request_validation_exception_handler(request, exc)

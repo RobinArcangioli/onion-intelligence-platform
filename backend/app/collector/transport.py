@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from app.security.onion import canonical_onion_root
+from app.security.onion import canonical_onion_page
 
 MAX_BODY = 256 * 1024
 SOCKS_PROXY = "socks5://tor:9050"
@@ -25,12 +25,12 @@ class Fetched:
 
 
 async def fetch_onion_root(url: str, *, proxy: str = SOCKS_PROXY) -> Fetched:
-    """Seul un root Onion v3 est accepté ; proxy obligatoire, pas de redirection.
+    """Seule une URL Onion v3 enregistrée est acceptée ; proxy obligatoire, pas de redirection.
 
     L'injection du proxy sert exclusivement aux tests et ne provient pas des
     entrées utilisateur ni de l'API. En production le CLI passe toujours Tor.
     """
-    if canonical_onion_root(url) != url:
+    if canonical_onion_page(url) != url:
         raise CollectError("INVALID_SOURCE")
     if not proxy.startswith("socks5://"):
         raise CollectError("PROXY_REQUIRED")

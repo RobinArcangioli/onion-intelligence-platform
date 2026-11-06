@@ -9,6 +9,7 @@ class CrawlJob(Base):
     __tablename__ = "crawl_jobs"
     __table_args__ = (
         Index("ix_crawl_jobs_source_created", "source_id", "created_at"),
+        Index("ix_crawl_jobs_waiting", "status", "source_id", "created_at"),
         Index("ix_crawl_jobs_running_lease", "status", "lease_expires_at"),
         Index("uq_crawl_jobs_active_source", "source_id", unique=True,
               postgresql_where=text("status IN ('PENDING', 'RUNNING')"),
@@ -17,6 +18,7 @@ class CrawlJob(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     source_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("onion_sources.id"), nullable=False)
+    page_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("source_pages.id"))
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="PENDING", server_default="PENDING")
     error_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
     started_at: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -35,6 +37,8 @@ class SourceObservation(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     job_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("crawl_jobs.id"), unique=True, nullable=False)
     source_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("onion_sources.id"), nullable=False)
+    page_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("source_pages.id"))
+    origin: Mapped[str] = mapped_column(String(20), nullable=False, default="TOR_HTTP", server_default="TOR_HTTP")
     http_status: Mapped[int] = mapped_column(Integer, nullable=False)
     content_type: Mapped[str] = mapped_column(String(80), nullable=False)
     response_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -54,6 +58,7 @@ class SourceObservation(Base):
 Index("ix_obs_recent_id_desc", SourceObservation.created_at.desc(), SourceObservation.id.desc())
 Index("ix_obs_source_recent_id_desc", SourceObservation.source_id,
       SourceObservation.created_at.desc(), SourceObservation.id.desc())
+Index("ix_obs_page_recent", SourceObservation.page_id, SourceObservation.created_at.desc())
 Index("ix_obs_hash_recent_id_desc", SourceObservation.text_sha256,
       SourceObservation.created_at.desc(), SourceObservation.id.desc())
 

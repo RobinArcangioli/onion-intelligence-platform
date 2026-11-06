@@ -112,7 +112,7 @@ async def run_worker(catalog, *, save):
 
     from app.collector.policy import admission_lock, emergency_active, read_policy
     from app.collector.transport import ALLOWED_TYPES, SOCKS_PROXY
-    from app.models import AuditLog, OnionSource
+    from app.models import AuditLog, OnionSource, SourcePage
 
     policy = read_policy()
     if emergency_active(policy):
@@ -179,6 +179,7 @@ async def run_worker(catalog, *, save):
                 with db.begin_nested():
                     db.add(source)
                     db.flush()
+                    db.add(SourcePage(source_id=source.id, url=url))
                     db.add(AuditLog(actor="local_torwatch_import", action="source.import",
                                     entity_type="onion_source", entity_id=source.id,
                                     details=json.dumps({"reason": "Tor.watch marketplace candidate",

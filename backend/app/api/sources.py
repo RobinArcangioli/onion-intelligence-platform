@@ -2,6 +2,7 @@
 
 Aucun endpoint ne déclenche de requête Tor, ni n'active collection_enabled.
 """
+from dataclasses import replace
 import csv
 import io
 import json
@@ -16,13 +17,15 @@ from sqlalchemy.orm import Session
 from app.db.session import get_session
 from app.core.config import Settings, get_settings
 from app.collector.policy import admission_lock, pending_full, read_policy, source_restriction, emergency_active
-from app.models import AuditLog, OnionSource, CrawlJob, SourceSchedule
-from app.schemas.collection import JobOut
-from app.security.onion import canonical_onion_root
+from app.collector.extract import extract_html
+from app.collector.runner import active_rules, analyze_page, store_observation
+from app.models import AuditLog, OnionSource, CrawlJob, SourceObservation, SourcePage, SourceSchedule
+from app.schemas.collection import JobOut, ObservationOut
+from app.security.onion import canonical_onion_page
 from app.schemas.source import (
     SourceApproval, SourceAuditOut, SourceCreate, SourceHistory,
     SourceList, SourceOut, SourcePatch, SourceReason,
-    SourceImportRequest, SourceImportResult,
+    SourceImportRequest, SourceImportResult, SourcePageAdd, SourcePageCapture, SourcePageOut,
 )
 from app.security.api_key import require_api_key, require_role
 
@@ -93,6 +96,8 @@ def list_sources(
             OnionSource.name.ilike(pattern, escape="\\"),
             OnionSource.canonical_url.ilike(pattern, escape="\\"),
             OnionSource.description.ilike(pattern, escape="\\"),
+            select(SourcePage.id).where(SourcePage.source_id == OnionSource.id,
+                SourcePage.is_active.is_(True), SourcePage.url.ilike(pattern, escape="\\")).exists(),
         ))
     if category is not None:
         conditions.append(OnionSource.category == category)
@@ -125,6 +130,7 @@ def create_source(payload: SourceCreate, db: Session = Depends(get_session)) -> 
     try:
         db.add(source)
         db.flush()
+        db.add(SourcePage(source_id=source.id, url=source.canonical_url))
         _audit(db, source, "source.create", reason="Manual approval")
         return _save(db, source)
     except IntegrityError as exc:
@@ -182,6 +188,7 @@ def import_sources(payload: SourceImportRequest, db: Session = Depends(get_sessi
             )
             db.add(source)
             db.flush()
+            db.add(SourcePage(source_id=source.id, url=source.canonical_url))
             _audit(db, source, "source.import", reason="Manual import")
             created.append(source)
         db.commit()
@@ -312,32 +319,41 @@ def enqueue_manual_collection(
     source = _source(db, source_id, lock=True)
     if not (source.is_active and source.approved_for_collection and source.collection_enabled):
         raise HTTPException(status_code=409, detail="Collecte non autorisée pour cette source")
-    try:
-        if canonical_onion_root(source.canonical_url) != source.canonical_url:
-            raise ValueError("Invalid root")
-    except ValueError as exc:
-        raise HTTPException(status_code=409, detail="Adresse Onion invalide") from exc
-    existing = db.scalar(select(CrawlJob).where(
-        CrawlJob.source_id == source_id, CrawlJob.status.in_(("PENDING", "RUNNING")),
-    ))
+    existing = db.scalar(select(CrawlJob.id).where(
+        CrawlJob.source_id == source_id, CrawlJob.status.in_(("PENDING", "RUNNING", "WAITING")),
+    ).limit(1))
     if existing is not None:
         raise HTTPException(status_code=409, detail="Une collecte est déjà en attente ou en cours")
+    pages = db.scalars(select(SourcePage).where(SourcePage.source_id == source_id)
+                       .order_by(SourcePage.url)).all()
+    targets = [(page.id, page.url) for page in pages if page.is_active]
+    if not pages:
+        targets = [(None, source.canonical_url)]
+    if not targets:
+        raise HTTPException(409, "Ce groupe ne contient aucune URL active")
+    try:
+        if any(canonical_onion_page(url) != url for _, url in targets):
+            raise ValueError("Non canonique")
+    except ValueError as exc:
+        raise HTTPException(409, "Adresse Onion invalide") from exc
     restriction = source_restriction(db, source_id, policy)
     if restriction:
         raise HTTPException(status_code=429, detail=restriction)
     if pending_full(db, policy):
         raise HTTPException(status_code=429, detail="GLOBAL_QUEUE_FULL")
-    job = CrawlJob(source_id=source_id, status="PENDING")
-    db.add(job)
-    db.flush()
-    _audit(db, source, "collection.enqueue", reason=payload.reason, job_id=str(job.id))
+    jobs = [CrawlJob(source_id=source_id, page_id=page_id, status="PENDING" if index == 0 else "WAITING")
+            for index, (page_id, _) in enumerate(targets)]
+    db.add_all(jobs)
+    first = jobs[0]
     try:
+        db.flush()
+        _audit(db, source, "collection.enqueue", reason=payload.reason, job_id=str(first.id), urls=len(jobs))
         db.commit()
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(status_code=409, detail="Une collecte est déjà en attente ou en cours") from exc
-    db.refresh(job)
-    return job
+    db.refresh(first)
+    return first
 
 
 @router.get("/{source_id}/history", response_model=SourceHistory)
@@ -385,3 +401,105 @@ def disable_collection(source_id: uuid.UUID, payload: SourceReason, db: Session 
         _audit(db, source, "collection.disable", reason=payload.reason)
         return _save(db, source)
     return source
+
+
+def _register_page(db: Session, source: OnionSource, url: str) -> SourcePage:
+    # Older registry writers may still create a source without a page row.
+    if not db.scalar(select(SourcePage.id).where(SourcePage.source_id == source.id).limit(1)):
+        db.add(SourcePage(source_id=source.id, url=source.canonical_url))
+        db.flush()
+    page = db.scalar(select(SourcePage).where(SourcePage.source_id == source.id, SourcePage.url == url))
+    if page is None:
+        page = SourcePage(source_id=source.id, url=url)
+        db.add(page)
+        db.flush()
+        _audit(db, source, "source.page.add", reason="Manual selection", page_id=str(page.id))
+    elif not page.is_active:
+        page.is_active = True
+        _audit(db, source, "source.page.restore", reason="Manual selection", page_id=str(page.id))
+    return page
+
+
+@router.get("/{source_id}/pages")
+def list_source_pages(source_id: uuid.UUID, limit: int = Query(50, ge=1, le=100),
+                      offset: int = Query(0, ge=0), db: Session = Depends(get_session)) -> dict:
+    _source(db, source_id)
+    scope = (SourcePage.source_id == source_id, SourcePage.is_active.is_(True))
+    total = db.scalar(select(func.count()).select_from(SourcePage).where(*scope))
+    latest = (select(CrawlJob.id).where(CrawlJob.page_id == SourcePage.id).correlate(SourcePage)
+              .order_by(CrawlJob.created_at.desc(), CrawlJob.id.desc()).limit(1).scalar_subquery())
+    rows = db.execute(select(SourcePage, CrawlJob.status, CrawlJob.error_code)
+                      .outerjoin(CrawlJob, CrawlJob.id == latest).where(*scope)
+                      .order_by(SourcePage.url).offset(offset).limit(limit)).all()
+    return {"total": total, "limit": limit, "offset": offset,
+            "items": [SourcePageOut(id=page.id, url=page.url, status=state, error_code=error)
+                      for page, state, error in rows]}
+
+
+@router.post("/{source_id}/pages", response_model=SourcePageOut,
+             dependencies=[Depends(require_role("ADMIN"))])
+def add_source_page(source_id: uuid.UUID, payload: SourcePageAdd,
+                    db: Session = Depends(get_session)) -> SourcePage:
+    source = _source(db, source_id, lock=True)
+    page = _register_page(db, source, payload.url)
+    db.commit()
+    return page
+
+
+@router.delete("/{source_id}/pages/{page_id}", status_code=204,
+               dependencies=[Depends(require_role("ADMIN"))])
+def archive_source_page(source_id: uuid.UUID, page_id: uuid.UUID,
+                        db: Session = Depends(get_session)) -> Response:
+    source = _source(db, source_id, lock=True)
+    page = db.get(SourcePage, page_id)
+    if page is None or page.source_id != source.id:
+        raise HTTPException(404, "URL introuvable dans ce groupe")
+    if page.is_active:
+        page.is_active = False
+        _audit(db, source, "source.page.archive", reason="Manual removal", page_id=str(page.id))
+        db.commit()
+    return Response(status_code=204)
+
+
+@router.post("/{source_id}/pages/capture", response_model=ObservationOut,
+             dependencies=[Depends(require_role("ADMIN"))])
+def capture_source_page(source_id: uuid.UUID, payload: SourcePageCapture,
+                        db: Session = Depends(get_session),
+                        settings: Settings = Depends(get_settings)) -> SourceObservation:
+    if not settings.manual_collection_enabled or emergency_active(read_policy()):
+        raise HTTPException(503, "Analyse désactivée")
+    source = _source(db, source_id, lock=True)
+    if not (source.is_active and source.approved_for_collection):
+        raise HTTPException(409, "Source non autorisée à l’analyse")
+    body = payload.text.encode("utf-8")
+    extracted = extract_html(body, "utf-8", content_type="text/plain", page_url=payload.url)
+    extracted = replace(extracted, candidates=(), onion_roots=())
+    if not extracted.text_length:
+        raise HTTPException(422, "Texte visible requis")
+    existing = db.get(CrawlJob, payload.request_id)
+    if existing is not None:
+        observation = db.scalar(select(SourceObservation).where(SourceObservation.job_id == existing.id))
+        page = db.get(SourcePage, existing.page_id) if existing.page_id else None
+        if (existing.source_id == source.id and page and page.url == payload.url and observation
+                and observation.origin == "OPERATOR_CAPTURE" and observation.text_sha256 == extracted.text_sha256):
+            return observation
+        raise HTTPException(409, "Identifiant de capture déjà utilisé")
+    page = _register_page(db, source, payload.url)
+    now = datetime.now(timezone.utc)
+    job = CrawlJob(id=payload.request_id, source_id=source.id, page_id=page.id,
+                   status="COMPLETED", started_at=now, finished_at=now)
+    db.add(job)
+    try:
+        db.flush()
+        observation = store_observation(db, source, job, extracted, analyze_page(extracted, active_rules(db)),
+                                        http_status=0, content_type="text/plain", response_bytes=0,
+                                        origin="OPERATOR_CAPTURE")
+        _audit(db, source, "collection.capture", reason="Operator visible text",
+               page_id=str(page.id), job_id=str(job.id))
+        if emergency_active(read_policy()):
+            raise HTTPException(503, "Analyse désactivée")
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(409, "Identifiant de capture déjà utilisé") from exc
+    return observation
