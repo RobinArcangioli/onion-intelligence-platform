@@ -41,6 +41,9 @@ sont les incréments suivants, avec revue de leur périmètre ci-dessous.
 | D12 | Même adresse web que l’admin, petit lien latéral « accès visiteur », sans connexion visiteur | Acté, réponse du propriétaire 2026-11-05 | Vue restreinte de l’interface et API de lecture publique ; connexion par jeton API individuel réservée aux accès internes autorisés ; exposition effective à préparer/tester avant déploiement |
 | D13 | Champs publics par défaut : date, statut, volumes et noms des sources ; sans adresse Onion | Acté, réponse du propriétaire 2026-11-05 | Liste de champs publique explicite, sans exposition des objets internes complets ; audit des noms de sources et des réponses avant mise en ligne |
 | D14 | Navigation assistée, une source à la fois, avec analyse déclenchée par l’opérateur depuis OIP | Acté, demande du propriétaire 2026-11-06 | Une page d’entrée configurable par source et des pages sélectionnées conservées dans le groupe de la marketplace |
+| D15 | L’opérateur colle l’URL finale et le texte visible dans OIP | Acté, réponse du propriétaire | Le bouton **Analyser cette page** valide le transfert explicite |
+| D16 | Remettre toutes les pages suivies dans la file à chaque nouvelle veille | Acté, réponse du propriétaire | L’opérateur confirme chaque ouverture et peut passer une page |
+| D17 | Première version limitée aux pages accessibles sans compte | Acté, réponse du propriétaire | La veille couvre les pages accessibles après une attente ou un CAPTCHA effectué manuellement |
 
 La connexion existante par jeton API individuel est conforme au choix retenu :
 elle est **conservée**, avec les rôles, expiration, révocation et gouvernance des
@@ -205,18 +208,19 @@ avec une seule identité de page dans le groupe.
 | Lot | Livrable | Critère d’acceptation |
 |---|---|---|
 | H01 — Modèle et migration | Une entrée par source, un registre de pages suivies et un lien entre page et observation. Validation des chemins Onion v3 et des hôtes autorisés par source. Réutilisation des URL existantes comme entrées initiales. | Une racine existante et une entrée à chemin fonctionnent. Deux sélections de la même page réutilisent sa fiche. Retirer une page de la liste active conserve ses observations, alertes et rapports. |
-| H02 — Parcours opérateur | Une file ordonnée, une source à la fois. OIP affiche la source, l’adresse cible et les actions **Ouvrir dans Tor Browser**, **Passer** et **Arrêter**. L’ouverture suit la confirmation de l’opérateur. OIP affiche **Analyser cette page** en dehors de Tor. | Après ouverture, l’opérateur effectue lui-même les étapes de navigation et de vérification. Il peut analyser plusieurs pages du groupe, puis passer à la source suivante. Fermer, refuser ou reprendre une session a un résultat explicite. |
-| H03 — Transfert de la page choisie | Prototype de lancement local sur Linux et transfert explicite de l’URL finale et du texte affiché. Le mode de transfert est soumis à arbitrage. L’opérateur voit l’adresse finale dans OIP avant validation. | Le texte de la page atteinte est analysé même si un client HTTP séparé ne reçoit que la page d’attente. Vérifier la concordance avec l’onglet et la source choisis, le refus d’une origine hors périmètre et l’absence de collecte en arrière-plan. |
+| H02 — Parcours opérateur | Une file ordonnée, une source à la fois. OIP affiche la source, l’adresse cible et les actions **Ouvrir dans Tor Browser**, **Passer** et **Arrêter**. Chaque ouverture suit la confirmation de l’opérateur. Toutes les pages suivies rejoignent la file lors des veilles suivantes. OIP affiche **Analyser cette page** en dehors de Tor. | Après ouverture, l’opérateur effectue lui-même les étapes de navigation et de vérification. Il peut analyser plusieurs pages du groupe, puis passer à la source suivante. Fermer, refuser ou reprendre une session a un résultat explicite. |
+| H03 — Transfert de la page choisie | Prototype de lancement local sur Linux. L’opérateur colle l’URL finale et le texte visible dans OIP après avoir atteint la page sans compte, y compris après attente ou CAPTCHA manuel. | Le texte de la page atteinte est analysé même si un client HTTP séparé ne reçoit que la page d’attente. L’opérateur vérifie l’adresse et le texte collés. OIP refuse une adresse hors périmètre et traite uniquement le texte transmis. |
 | H04 — Analyse et rattachement | Une action crée ou retrouve la fiche de page, enregistre l’origine de l’observation et soumet le texte au moteur existant. Réutiliser les règles, la classification, les alertes et les rapports. | Enregistrement cohérent en cas de double clic, de doublon ou d’échec. Les changements et les alertes sont comparés à l’historique de la même page. Une nouvelle visite d’une page suivie reste déclenchée par l’opérateur. |
 | H05 — Recette de bout en bout | D’abord un parcours de test avec une page d’attente et deux pages distinctes. Ensuite une marketplace réelle lorsque son catalogue est accessible. Exécution locale sur le port 8000. | L’opérateur confirme, navigue, analyse, retrouve la page sous la bonne marketplace, obtient une alerte sur une occurrence réelle et vérifie le rapport en administration. La vitrine affiche le rapport après revue et publication explicite, avec les seuls champs autorisés. |
 
 Commencer par H01 et valider le transfert de H03 sur une page de test avant
 de finaliser l’interface H02. H04 dépend du modèle et du contrat de transfert.
-H05 valide ensuite le parcours complet.
+H05 valide ensuite le parcours complet, puis une deuxième veille qui remet
+toutes les pages suivies dans la file, avec confirmation pour chaque ouverture.
 
-**Contrat de capture proposé** — Limiter le transfert à l’adresse de la page,
-au titre et au texte sélectionné ou visible, avec plafonds et contrôle du
-périmètre. Les cookies, mots de passe, champs de formulaire, jetons d’URL et
+**Contrat de capture** — L’opérateur colle l’URL finale et le texte visible de
+la page dans OIP, puis valide avec **Analyser cette page**. OIP applique des
+plafonds et vérifie le périmètre. Les cookies, mots de passe, champs de formulaire, jetons d’URL et
 secrets de session restent dans Tor Browser. Afficher l’adresse à enregistrer
 après traitement des paramètres et refuser une adresse qui dépend d’un secret
 de session. Traiter le texte en mémoire et conserver les observations, les
@@ -229,21 +233,6 @@ le worker. Les volumes et la provenance d’une capture doivent être distingué
 de ceux d’une observation HTTP directe. La recette couvre aussi l’expiration
 d’une session assistée, la révocation de la source en cours de session et le
 refus d’un accès visiteur aux pages suivies.
-
-**Arbitrages ouverts avant H03 et H05**
-
-1. Pour la première version, transfert explicite de l’URL et du texte dans OIP,
-   ou capture de l’onglet en un clic depuis un compagnon local. Le transfert
-   explicite est la proposition de départ. Un bouton dans une application
-   séparée exige un canal autorisé pour lire l’onglet Tor. Une extension avec
-   messagerie native est une piste technique à évaluer. Le Tor Project
-   déconseille les extensions supplémentaires pour des raisons de confidentialité
-   et de sécurité. [Tor Project](https://support.torproject.org/tor-browser/features/plugins/) ·
-   [Mozilla](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_messaging)
-2. Aux veilles suivantes, proposer une sélection parmi les pages suivies, ou
-   les placer toutes dans la file avec confirmation humaine pour chacune.
-3. Pour la première version, couvrir les pages accessibles après attente ou
-   CAPTCHA manuel, ou couvrir aussi les pages derrière un compte autorisé.
 
 ### MVP-02 — Qualifier file et scheduler inactif sur PostgreSQL (P1, M)
 
