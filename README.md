@@ -65,6 +65,15 @@ Les deux cas représentent des annonces fictives portant sur 2 500 fiches client
 (ALPHA-01) et 750 dossiers RH (BETA-02). Le worker traite deux réponses HTML locales.
 Le visiteur lit uniquement la fiche relue et ses compteurs publics.
 
+### Recette navigateur synthétique
+
+Après installation des dépendances frontend, backend et Chromium Playwright,
+lancer `npm --prefix frontend run test:e2e` sous Linux. La commande lance
+successivement les jeux visiteur, simulation de fuite et recette multi-URL
+sur le port 8000 d’un espace réseau limité à la boucle locale. Le serveur
+de test utilise une base jetable, un jeton de fixture et un transport simulé.
+L’instance de travail reste accessible à son adresse habituelle.
+
 ### Gérer les URL d’une marketplace
 
 Dans **Sources → Gérer les URL**, ajoute ou retire les adresses du groupe.

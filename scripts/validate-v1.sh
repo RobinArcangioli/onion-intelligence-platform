@@ -72,7 +72,6 @@ if [[ -z "${PLAYWRIGHT_BROWSERS_PATH:-}" && -n "${SUDO_USER:-}" && "$SUDO_USER" 
     export PLAYWRIGHT_BROWSERS_PATH="$sudo_user_home/.cache/ms-playwright"
   fi
 fi
-export OIP_E2E_TOKEN="$OIP_SMOKE_TOKEN"
+unset OIP_SMOKE_TOKEN
 (cd frontend && npm run test:unit && npm run typecheck && npm run test:e2e)
-unset OIP_E2E_TOKEN OIP_SMOKE_TOKEN
 printf '\nPASS: local v1 candidate release gates (online advisory data may change).\n'

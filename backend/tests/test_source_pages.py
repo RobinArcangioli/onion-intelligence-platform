@@ -41,6 +41,9 @@ def test_capture_and_routine_group_collection(client, db_session_factory, valid_
     observed = capture.json()
     assert observed["origin"] == "OPERATOR_CAPTURE" and observed["http_status"] is None
     assert "CAPTURE_RAW_SENTINEL" not in capture.text
+    with db_session_factory() as db:
+        sqlite = db.connection().connection.driver_connection
+        assert not any("CAPTURE_RAW_SENTINEL" in line for line in sqlite.iterdump())
     assert client.post(pages + "/capture", headers=HEADERS, json=payload).json()["id"] == observed["id"]
     assert client.get("/api/public/v1/activity").json()["total"] == 0
     alert = client.get("/api/v1/alerts", headers=HEADERS).json()["items"][0]

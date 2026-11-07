@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 const token='oip_CI_SYNTHETIC_NOT_A_REAL_OPERATOR_CREDENTIAL';
-test.use({baseURL:'http://127.0.0.1:8013'});
 
 test('two fictional leak watches traverse observations, alerts, admin review and public reading',async({page,request,browser})=>{
  test.setTimeout(60000);
@@ -33,7 +32,7 @@ test('two fictional leak watches traverse observations, alerts, admin review and
  await page.getByRole('button',{name:'Acquitter',exact:true}).click();
  await expect(page.getByRole('button',{name:'Acquitter',exact:true})).toHaveCount(0);
  await nav.getByRole('button',{name:'Rapports',exact:true}).click();
- const visitorContext=await browser.newContext({baseURL:'http://127.0.0.1:8013'});
+ const visitorContext=await browser.newContext({baseURL:new URL(page.url()).origin});
  try{
   const visitor=await visitorContext.newPage();
   visitor.on('request',r=>{if(new URL(r.url()).pathname.startsWith('/api/'))expect(new URL(r.url()).pathname).toMatch(/^\/api\/public\/v1\//);});

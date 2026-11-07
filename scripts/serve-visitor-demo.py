@@ -22,8 +22,10 @@ for key in list(os.environ):
 
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--port',type=int,default=8000)
-parser.add_argument('--simulation',action='store_true',help='Start the complete fictional leak workflow')
-args=parser.parse_args() if __name__=='__main__' else argparse.Namespace(port=8000,simulation=False)
+mode = parser.add_mutually_exclusive_group()
+mode.add_argument('--acceptance', action='store_true', help='Run the isolated browser acceptance fixtures')
+mode.add_argument('--simulation',action='store_true',help='Start the complete fictional leak workflow')
+args=parser.parse_args() if __name__=='__main__' else argparse.Namespace(port=8000,simulation=False,acceptance=False)
 if not 1024 <= args.port <= 65535:
     parser.error('Use an unprivileged local port')
 
@@ -56,7 +58,7 @@ host=base64.b32encode(key+checksum+b'\x03').decode().lower().rstrip('=')+'.onion
 with factory() as db:
     operator=Operator(username='demo_admin',role='ADMIN');db.add(operator);db.flush()
     db.add(OperatorToken(operator_id=operator.id,token_hash=fingerprint(FIXTURE_TOKEN),expires_at=now+timedelta(hours=2)))
-    if not args.simulation:
+    if not (args.simulation or args.acceptance):
         source=OnionSource(name='Source de démonstration',canonical_url='http://'+host+'/',authorization_note='Synthetic local fixture')
         db.add(source);db.flush()
         job=CrawlJob(source_id=source.id,status='COMPLETED',finished_at=now,error_code='INTERNAL_PRIVATE_SENTINEL')
@@ -79,7 +81,7 @@ def session():
 
 def settings():
     return Settings(database_url='sqlite+pysqlite://',api_key=SecretStr('synthetic-demo-only-not-an-operational-key'),
-                    legacy_api_key_enabled=False,manual_collection_enabled=args.simulation)
+                    legacy_api_key_enabled=False,manual_collection_enabled=args.simulation or args.acceptance)
 
 app.dependency_overrides[get_session]=session
 app.dependency_overrides[get_settings]=settings
@@ -107,6 +109,14 @@ if args.simulation:
                 raise HTTPException(409,'Simulation interrupted; restart only this disposable demo') from None
             return {'results':simulation_results}
     app.include_router(demo)
+
+if args.acceptance:
+    from browser_acceptance import install_acceptance
+
+    candidate_key = bytes(reversed(range(32)))
+    candidate_checksum = hashlib.sha3_256(b'.onion checksum' + candidate_key + b'\x03').digest()[:2]
+    candidate = base64.b32encode(candidate_key + candidate_checksum + b'\x03').decode().lower()
+    install_acceptance(app, factory, root=f'http://{host}/', discovered=f'http://{candidate}.onion/')
 
 app.mount('/',StaticFiles(directory=ROOT/'frontend/dist',html=True),name='synthetic-frontend')
 if __name__=='__main__':

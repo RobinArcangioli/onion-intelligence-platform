@@ -8,7 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test:unit": "node --loader ./tests/ts-loader.mjs --test tests/*.test.mts",
-    "test:e2e": "playwright test"
+    "test:e2e": "bash ../scripts/test-browser-mvp.sh"
   },
   "dependencies": {
     "react": "19.3.1",

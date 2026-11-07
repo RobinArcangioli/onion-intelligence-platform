@@ -277,6 +277,11 @@ Runbook d'arrêt, diagnostic, réconciliation et reprise testé localement.
 
 ### MVP-05 — Recette navigateur et qualité d'extraction (P1, M)
 
+**État** — Recette locale synthétique validée. Les trois jeux Playwright
+s’exécutent sur le port 8000 dans un espace réseau limité à la boucle locale.
+Le parcours multi-URL couvre la veille, la capture opérateur, la publication
+et le retrait. La CI exécute cette même commande lors de son prochain run.
+
 Dépend de MVP-01/01V/02. Préparer une stack locale sur données entièrement synthétiques,
 avec fetcher de test fermé au réseau externe. Tester après connexion admin : ajout d'une
 source, autorisation, clic manuel, transitions et observation, erreurs, désactivation

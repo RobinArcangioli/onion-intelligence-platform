@@ -197,7 +197,7 @@ lisibles. La tête Alembic reste `0018`.
 
 La [recette manuelle](../README.md#simulation-complète-de-deux-fuites-fictives)
 utilisait le port 8012 avant la consolidation sur le port 8000. La recette
-Playwright utilise le port 8013 le temps de son exécution.
+Playwright utilisait le port 8013 à ce stade du projet.
 Validations locales : 5 scénarios Playwright réussis, build TypeScript/Vite réussi,
 373 tests backend réussis et 6 tests PostgreSQL ignorés dans cette exécution.
 
@@ -281,6 +281,29 @@ pas activé le timer ni utilisé une destination distante.
 Les outils de transfert de sauvegarde et les unités correspondantes ont
 été retirés. Les outils restants couvrent le dump local avant migration
 et la vérification d’une archive locale existante.
+
+### Recette navigateur MVP-05
+
+Les trois jeux de recette démarrent chacun leur serveur de test sur 8000
+dans un espace réseau isolé de l’instance locale. Le worker reçoit uniquement
+les réponses synthétiques attendues. La suite utilise une base jetable et
+un jeton de test intégré. Le contrôle de l’instance réelle reste une commande
+de smoke séparée.
+
+Le scénario multi-URL vérifie la progression, une page de vérification,
+la poursuite vers les autres URL, l’analyse immédiate et le rapport jusqu’à
+sa publication puis son retrait. Une balise et un attribut d’événement
+fictifs ne créent aucun élément actif dans Chromium et ne provoquent aucune
+requête vers la ressource référencée. Un test vérifie directement que le
+texte brut collé est absent de la base synthétique. La recette a aussi mis
+en évidence une notification qui empêchait de cliquer sur le formulaire.
+La correction a été vérifiée sur la passerelle locale.
+
+Le corpus d’extraction fixe les résultats attendus sur le texte, sa longueur
+et son empreinte. Il couvre les blocs HTML exclus, les encodages, les pages
+vides et la limite de texte. Un exemple de démenti peut encore déclencher
+un signal de fuite, qui reste une mention non vérifiée. Le parseur ne calcule
+pas la visibilité après exécution de JavaScript ou application de CSS.
 
 ## 3. Architecture présente
 

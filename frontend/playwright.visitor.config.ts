@@ -1,10 +1,24 @@
 import { defineConfig } from '@playwright/test';
+
+const modes: Record<string, { testMatch: string; flag: string }> = {
+  visitor: { testMatch: 'visitor.spec.ts', flag: '' },
+  simulation: { testMatch: 'simulation.spec.ts', flag: '--simulation' },
+  acceptance: { testMatch: 'collection-acceptance.spec.ts', flag: '--acceptance' },
+};
+const modeName = process.env.OIP_E2E_MODE ?? 'visitor';
+if (!Object.hasOwn(modes, modeName)) throw new Error('Unknown OIP browser fixture mode');
+const mode = modes[modeName];
+const baseURL = 'http://127.0.0.1:8000';
+
 export default defineConfig({
-  testDir:'./e2e',testMatch:['visitor.spec.ts','simulation.spec.ts'],workers:1,retries:0,timeout:25000,
-  use:{baseURL:'http://127.0.0.1:8011',headless:true,screenshot:'off',trace:'off',video:'off'},
-  webServer:[{command:`${process.env.OIP_E2E_PYTHON || 'python3'} ../scripts/serve-visitor-demo.py --port 8011`,
-    url:'http://127.0.0.1:8011/api/health',reuseExistingServer:false,timeout:20000},
-    {command:`${process.env.OIP_E2E_PYTHON || 'python3'} ../scripts/serve-visitor-demo.py --simulation --port 8013`,
-    url:'http://127.0.0.1:8013/api/health',reuseExistingServer:false,timeout:20000}],
-  reporter:'line',
+  testDir: './e2e', testMatch: mode.testMatch, workers: 1, retries: 0, timeout: 45_000,
+  use: {
+    baseURL, actionTimeout: 10_000, timezoneId: 'UTC', headless: true, screenshot: 'off',
+    trace: 'off', video: 'off', serviceWorkers: 'block',
+  },
+  webServer: {
+    command: '"${OIP_E2E_PYTHON:-python3}" ../scripts/serve-visitor-demo.py ' + mode.flag,
+    url: `${baseURL}/api/health`, reuseExistingServer: false, timeout: 20_000,
+  },
+  reporter: 'line',
 });
