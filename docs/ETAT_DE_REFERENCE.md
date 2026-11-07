@@ -311,9 +311,9 @@ Au 7 novembre 2026, les recettes CI et Docker utilisent Python 3.12.16 et
 Node 24.22.2. Les verrous Python couvrent les outils de construction, les
 dépendances d’exécution et la suite de test. Les installations refusent les
 roues dont l’empreinte diffère du verrou. Le frontend utilise `npm ci`.
-Les images de base et PostgreSQL 17 sont référencés par digest. L’image Tor
-utilise les index Debian signés arrêtés au `20261107T000000Z` et installe
-`tor=0.4.9.11-0+deb12u1` et `ca-certificates=20250419~deb12u2`.
+Les images de base et PostgreSQL 17 sont référencés par digest. Lors de la
+première qualification, Tor utilisait Debian Bookworm, avec les index
+signés du `20261107T000000Z` et `tor=0.4.9.11-0+deb12u1`.
 
 Le contrôle Trivy 0.76.2 examine les verrous et les images candidates hors
 réseau après téléchargement de sa base d’avis publique. L’inventaire est
@@ -329,7 +329,7 @@ Tor et PostgreSQL 17.11. Les deux images de test backend ont chacune réussi
 réussi séparément sur des bases jetables. Les 17 tests frontend et les six
 scénarios Chromium ont réussi sur une installation neuve avec ces verrous.
 
-Le scan du 7 novembre 2026 à 14 h 24 UTC utilise la base Trivy mise à jour
+Le premier scan du 7 novembre 2026 à 14 h 24 UTC utilise la base Trivy mise à jour
 à 12 h 52 UTC. Les verrous couvrent 123 entrées npm et 70 entrées Python
 réparties sur trois inventaires, avec un seul avis de sévérité moyenne.
 Les six images totalisent, après déduplication par avis, paquet et version,
@@ -344,6 +344,38 @@ indique encore les branches Bookworm et Trixie comme vulnérables. Le seuil
 reste appliqué à tous les résultats et la promotion est bloquée.
 [Suivi Debian de zlib](https://security-tracker.debian.org/tracker/CVE-2023-45853) ·
 [Suivi Debian de util-linux](https://security-tracker.debian.org/tracker/CVE-2026-78410)
+
+La reprise du 7 novembre 2026 corrige Vite en 6.4.5, fixe npm en 11.21.2
+avec vérification de l’archive et adopte l’image Nginx 1.30.6 du nouveau
+registre officiel, avec `libexpat=2.10.0-r0`. Le backend et Tor installent
+le correctif `zlib1g=1:1.3.dfsg+really1.3.1-1+deb13u1` depuis l’instantané
+Debian Security `20261107T120000Z`. Tor passe à Debian Trixie et à
+`0.4.9.15-0+deb13u1`, avec le même UID/GID `100:101` que l’image précédente.
+Les configurations Nginx et Tor sont validées hors réseau.
+[Registre officiel Nginx](https://github.com/nginx/docker-nginx-unprivileged) ·
+[Correctif Debian zlib](https://security-tracker.debian.org/tracker/CVE-2026-85091)
+
+La recette de reprise reproduit deux inventaires identiques sous Linux amd64.
+Les 392 tests backend hors réseau, les huit tests PostgreSQL isolés, les 17
+tests frontend et les six scénarios Chromium passent. Le scan à 15 h 25 UTC
+avec la même base Trivy ne relève aucun avis dans les verrous ni d’avis
+bloquant dans la passerelle. Il reste **99 couples avis/composant/version
+bloquants** (47 entrées Debian et 52 liées à Go, dont deux critiques) et
+deux entrées sans sévérité. Trivy ne donne aucune version Debian stable
+corrigée pour les 47 entrées restantes. Pour Go, les binaires concernés sont
+esbuild 0.25.12 et gosu 1.19. Le dernier esbuild publié inspecté (0.28.2)
+embarque Go 1.26.5 et sort de la plage d’esbuild de Vite 6. Gosu 1.20 reste
+compilé avec Go 1.24.6. Sur les binaires candidats, `govulncheck` en mode
+binaire relève 58 avis de bibliothèque standard pour esbuild. Pour gosu
+1.19, il relève `GO-2026-6686` dans `github.com/moby/sys/user`. Ce mode
+vérifie la présence de symboles dans le binaire. L’exposition dépend de
+leur usage dans le contexte OIP. Le binaire officiel gosu 1.20, vérifié
+par empreinte, ne présente plus d’avis au niveau des symboles dans
+`govulncheck`. L’image officielle PostgreSQL 17.11 Alpine vérifiée contient
+encore gosu 1.19. Le contrôle bloque toujours la promotion.
+[Versions de Go corrigées](https://go.dev/doc/devel/release) ·
+[Publication de gosu 1.20](https://github.com/tianon/gosu/releases/tag/1.20) ·
+[Avis Go sur la dépendance de gosu](https://pkg.go.dev/vuln/GO-2026-6686)
 
 ## 3. Architecture présente
 

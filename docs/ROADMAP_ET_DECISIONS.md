@@ -315,11 +315,14 @@ sévérité haute ou critique fait échouer le contrôle. Les avis sans sévéri
 sont signalés pour revue avant promotion. L’inventaire provient des images
 candidates. La CI ne déploie aucun service et n’utilise aucun secret d’exploitation.
 
-Le contrôle est en place. La promotion reste bloquée par les avis sur les images
-relevés lors de la [qualification locale du 7 novembre 2026](ETAT_DE_REFERENCE.md#qualification-de-livraison-mvp-06).
-Avant OPS-01, réévaluer les composants concernés à partir des avis éditeurs,
-actualiser les digests et l’instantané si des versions corrigées sont disponibles,
-puis rejouer les deux reconstructions, le scan et la recette.
+Le contrôle est en place. La [qualification locale du 7 novembre 2026](ETAT_DE_REFERENCE.md#qualification-de-livraison-mvp-06)
+a intégré les correctifs publiés pour Vite, npm, Nginx, zlib et Tor. Il reste
+99 entrées bloquantes. Avant OPS-01, vérifier les nouveaux correctifs Debian
+stables pour les paquets restants. Éprouver un esbuild compatible avec le build
+frontend et compilé avec un Go corrigé. Pour PostgreSQL, chercher d’abord une
+image amont avec gosu 1.20 ou ultérieur et vérifier son binaire avec Trivy et
+`govulncheck`. Après correction, rejouer les deux reconstructions, le scan
+et la recette. Un résultat haut ou critique bloque la promotion.
 
 ## 6. Passage ultérieur vers l'exploitation durable
 

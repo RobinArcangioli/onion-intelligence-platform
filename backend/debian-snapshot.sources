@@ -1,0 +1,6 @@
+Types: deb
+URIs: http://snapshot.debian.org/archive/debian-security/20261107T120000Z/
+Suites: trixie-security
+Components: main
+Check-Valid-Until: no
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg

@@ -182,13 +182,16 @@ bash scripts/audit-dependencies.sh "$reports" \
 
 Pour actualiser les verrous Python, installer uv 0.13.7 puis lancer
 `bash scripts/lock-backend.sh`. Pour modifier les dépendances npm, mettre à
-jour le verrou avec la version Node fixée dans la CI et valider avec
-`npm ci`. Mettre à jour ensemble les références PostgreSQL de Compose, de la
+jour le verrou avec la version Node fixée dans la CI et le CLI npm vérifié
+par `scripts/install-locked-npm.sh`, puis valider avec `npm ci`.
+Mettre à jour ensemble les références PostgreSQL de Compose, de la
 CI et du script de recette M7-C. Lors d’un changement d’image Python ou
-Node, aligner la version exacte du runtime de CI. Lors d’une mise à jour
-de Tor, vérifier les index Debian et les versions choisies dans le nouvel
-instantané. Refaire deux builds sans cache et comparer leurs inventaires
-avant de retenir de nouvelles références.
+Node, aligner la version exacte du runtime de CI. Lors d’une mise à jour de
+Tor ou des correctifs Debian du backend, vérifier les index signés et les
+versions dans les instantanés concernés. Le correctif Alpine de la passerelle
+requiert la version exacte de `libexpat` dans le dépôt signé. Refaire deux
+builds sans cache et comparer leurs inventaires avant de retenir de nouvelles
+références.
 
 Aucune licence open source n'est définie à ce stade. Le propriétaire reporte toute
 décision de licence après le MVP ; elle ne fait pas partie de la roadmap active.

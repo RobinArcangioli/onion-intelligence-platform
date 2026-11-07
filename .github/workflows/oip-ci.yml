@@ -58,6 +58,8 @@ jobs:
         with:
           node-version: '24.22.2'
           package-manager-cache: false
+      - name: Install verified npm CLI
+        run: sh ../scripts/install-locked-npm.sh
       - name: Locked install
         run: npm ci --no-audit --no-fund
       - name: Unit tests

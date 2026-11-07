@@ -10,6 +10,10 @@ COPY app ./app
 RUN python -m pip wheel --no-deps --no-build-isolation --wheel-dir /wheel .
 
 FROM base AS runtime
+COPY debian-snapshot.sources /etc/apt/sources.list.d/debian.sources
+RUN apt-get update -o Acquire::Retries=3 -o APT::Update::Error-Mode=any \
+ && apt-get install -y --no-install-recommends zlib1g=1:1.3.dfsg+really1.3.1-1+deb13u1 \
+ && rm -rf /var/lib/apt/lists/*
 COPY requirements-runtime.lock ./
 COPY --from=wheel /wheel /wheel
 RUN python -m pip install --no-cache-dir --require-hashes --only-binary=:all: -r requirements-runtime.lock \
