@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
-import type { Observation, Page, Source, SourcePage } from '../lib/types';
+import type { CollectionProgress, Observation, Page, Source, SourcePage } from '../lib/types';
+import { collectionMessage } from '../lib/manualCollection';
 import { readableError } from '../lib/util';
 import { Icon, Pager, Status } from './ui';
 
@@ -14,6 +15,7 @@ export function SourcePages({ token, source, canEdit, onClose }: {
 }) {
   const endpoint = `/api/v1/sources/${source.id}/pages`;
   const [pages, setPages] = useState<Page<SourcePage>>({ items: [], total: 0, offset: 0, limit: pageSize });
+  const [progress, setProgress] = useState<CollectionProgress | null>(null);
   const [offset, setOffset] = useState(0);
   const [revision, setRevision] = useState(0);
   const [target, setTarget] = useState<SourcePage | null>(null);
@@ -27,13 +29,27 @@ export function SourcePages({ token, source, canEdit, onClose }: {
 
   useEffect(() => {
     let active = true;
+    let timer: number;
     setLoading(true);
-    api.get<Page<SourcePage>>(token, `${endpoint}?limit=${pageSize}&offset=${offset}`)
-      .then(value => { if (active) setPages(value); })
-      .catch(err => { if (active) setError(readableError(err)); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [endpoint, offset, revision, token]);
+    async function refresh(initial: boolean) {
+      try {
+        const [list, current] = await Promise.all([
+          api.get<Page<SourcePage>>(token, `${endpoint}?limit=${pageSize}&offset=${offset}`),
+          api.get<CollectionProgress>(token, `/api/v1/sources/${source.id}/collection/progress`),
+        ]);
+        if (active) { setPages(list); setProgress(current); }
+      } catch (err) {
+        if (active && initial) setError(readableError(err));
+      } finally {
+        if (active) {
+          setLoading(false);
+          timer = window.setTimeout(() => { void refresh(false); }, 4000);
+        }
+      }
+    }
+    void refresh(true);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [endpoint, offset, revision, source.id, token]);
 
   async function save(analyze: boolean) {
     if (busy || !url.trim() || (analyze && !text.trim())) return;
@@ -86,12 +102,21 @@ export function SourcePages({ token, source, canEdit, onClose }: {
       </div>
       {error && <p className="inline-error" role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
+      {progress && progress.total > 0 && <section className="source-page-visit" aria-label="Progression de la veille">
+        <p><strong>{progress.completed + progress.failed} / {progress.total} URL traitées</strong>
+          {' · '}{progress.completed} réussie(s) · {progress.failed} en échec · {progress.waiting} en attente</p>
+        {progress.running_url && <p>URL en cours <code>{progress.running_url}</code></p>}
+        {progress.restriction && <p>{collectionMessage(progress.restriction, progress.retry_at)}</p>}
+      </section>}
       {loading && <p role="status">Chargement des URL…</p>}
       {!loading && pages.items.length === 0 && <p>Aucune URL active dans ce groupe.</p>}
       <ul className="source-page-list">
         {pages.items.map(page => <li key={page.id}>
           <code>{page.url}</code>
-          {page.status && <span title={page.error_code ?? undefined}><Status value={page.status}/></span>}
+          {page.status && <span>
+            <Status value={page.status === 'WAITING' ? 'PENDING' : page.status}/>
+            {page.error_code && <span className="muted small"> {collectionMessage(page.error_code)}</span>}
+          </span>}
           <div className="row-actions">
             <button className="tiny-btn" disabled={busy} onClick={() => setTarget(page)}>Visiter l’URL</button>
             {canEdit && <button className="tiny-btn caution" disabled={busy} onClick={() => void remove(page)}>Retirer</button>}

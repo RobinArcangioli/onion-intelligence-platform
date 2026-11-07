@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # On an ISOLATED recovery PC with Docker + age. NEVER run on the production VPS.
-# Usage: ./verify-restore.sh path/to/backup.dump.age path/to/recovery-key.txt
+# Usage: ./verify-restore.sh path/to/backup.dump.age path/to/recovery-key.txt [EXPECTED_REVISION]
 set -Eeuo pipefail
 umask 077
-[[ $# -eq 2 ]] || { echo 'Usage: verify-restore.sh ARCHIVE.dump.age AGE_PRIVATE_KEY' >&2; exit 2; }
+[[ $# -eq 2 || $# -eq 3 ]] || { echo 'Usage: verify-restore.sh ARCHIVE.dump.age AGE_PRIVATE_KEY [EXPECTED_REVISION]' >&2; exit 2; }
 archive="$1"; key="$2"
+expected_revision="${3:-0008_manual_queue}"
+[[ "$expected_revision" =~ ^[0-9]{4}_[a-z0-9_]+$ ]] || { echo 'Invalid expected migration revision' >&2; exit 2; }
 [[ -f "$archive" && ! -L "$archive" && -f "$key" && ! -L "$key" ]] || exit 2
 for bin in age docker; do command -v "$bin" >/dev/null || { echo "Missing $bin" >&2; exit 2; }; done
 container="oip-restore-test-$PPID-$$"
@@ -27,8 +29,8 @@ age -d -i "$key" "$archive" | docker exec -i "$container" \
 # Query the restored schema, not the source database.
 version="$(docker exec "$container" psql -U postgres -d postgres -AtXq \
   -c 'SELECT version_num FROM alembic_version LIMIT 1')"
-[[ "$version" == 0008_manual_queue ]] || {
-  echo "NO-GO: restored database schema version differs from expected RC2" >&2; exit 1;
+[[ "$version" == "$expected_revision" ]] || {
+  echo "NO-GO: restored database schema version differs from the expected revision" >&2; exit 1;
 }
 tables="$(docker exec "$container" psql -U postgres -d postgres -AtXq \
   -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'")"

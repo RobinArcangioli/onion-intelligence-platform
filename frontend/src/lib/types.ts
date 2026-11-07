@@ -6,6 +6,10 @@ export interface Source {
   is_active: boolean; priority: number; created_at: string; updated_at: string;
   deleted_at: string | null;
 }
+export interface CollectionProgress {
+  total: number; completed: number; failed: number; waiting: number;
+  running_url: string | null; restriction: string | null; retry_at: string | null;
+}
 export interface SourcePage { id: string; url: string; status: string | null; error_code: string | null }
 export interface Observation {
   id: string; job_id: string; source_id: string; page_id: string | null; origin: string; http_status: number | null; content_type: string;

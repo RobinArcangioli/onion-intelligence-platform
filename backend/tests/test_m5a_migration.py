@@ -32,7 +32,7 @@ def test_triage_upgrade_existing_indicator_and_downgrade(tmp_path):
                           "'OBSERVED_REFERENCE',65,'[\"CVE_PATTERN\"]','synthetic')"))
     alembic('upgrade', 'head')
     with engine.connect() as conn:
-        assert conn.scalar(text('SELECT version_num FROM alembic_version')) == '0019_source_pages'
+        assert conn.scalar(text('SELECT version_num FROM alembic_version')) == '0020_collection_batches'
         row = conn.execute(text('SELECT review_status,analyst_priority FROM threat_indicators')).one()
         assert tuple(row) == ('PENDING', 'UNASSESSED')
         assert 'ix_indicator_reference_review' in {i['name'] for i in inspect(conn).get_indexes('threat_indicators')}

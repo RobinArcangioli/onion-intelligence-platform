@@ -24,7 +24,7 @@ def test_m6a_upgrade_and_explicit_test_downgrade(tmp_path):
                          "VALUES ('11111111111141118111111111111111','http://fixture.onion/','Fixture','approved')"))
     alembic('upgrade','head')
     with engine.begin() as con:
-        assert con.scalar(text('SELECT version_num FROM alembic_version')) == '0019_source_pages'
+        assert con.scalar(text('SELECT version_num FROM alembic_version')) == '0020_collection_batches'
         assert inspect(con).has_table('analyst_cases') and inspect(con).has_table('analyst_case_events')
         assert con.scalar(text('SELECT COUNT(*) FROM onion_sources')) == 1
         case_indexes={idx['name'] for idx in inspect(con).get_indexes('analyst_cases')}

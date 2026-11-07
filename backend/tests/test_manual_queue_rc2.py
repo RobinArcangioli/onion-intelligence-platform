@@ -184,7 +184,7 @@ def test_migration_from_rc1_creates_duplicate_job_guard(tmp_path):
         assert result.returncode==0,result.stdout+result.stderr
     engine=create_engine(url)
     with engine.begin() as db:
-        assert db.scalar(text('SELECT version_num FROM alembic_version'))=='0019_source_pages'
+        assert db.scalar(text('SELECT version_num FROM alembic_version'))=='0020_collection_batches'
         statement=db.scalar(text("SELECT sql FROM sqlite_master WHERE name='uq_crawl_jobs_active_source'"))
         assert statement and 'UNIQUE INDEX' in statement
     engine.dispose()

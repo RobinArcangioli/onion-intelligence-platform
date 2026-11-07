@@ -60,3 +60,13 @@ class Page(BaseModel):
     limit: int
     offset: int
     items: list
+
+
+class CollectionProgress(BaseModel):
+    total: int = 0
+    completed: int = 0
+    failed: int = 0
+    waiting: int = 0
+    running_url: str | None = None
+    restriction: str | None = None
+    retry_at: datetime | None = None

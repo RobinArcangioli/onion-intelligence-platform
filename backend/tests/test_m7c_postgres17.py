@@ -26,7 +26,7 @@ from app.security.api_key import fingerprint
 
 BACKEND = Path(__file__).resolve().parents[1]
 EXPECTED_DB = "oip_m7c_test"
-REVISION = "0019_source_pages"
+REVISION = "0020_collection_batches"
 
 
 def safe_test_dsn(raw: str):
@@ -239,3 +239,135 @@ def test_publication_is_unique_under_concurrent_admins(pg_factory):
     with pg_factory() as db:
         assert db.scalar(select(func.count()).select_from(ReportPublication).where(
             ReportPublication.report_id==report_id,ReportPublication.is_public.is_(True)))==1
+
+
+def _multi_url_source(factory, root, paths):
+    from app.models import SourcePage
+
+    with factory.begin() as db:
+        source = OnionSource(name="Synthetic PG queue", canonical_url=root,
+                             authorization_note="PostgreSQL queue rehearsal", collection_enabled=True)
+        db.add(source)
+        db.flush()
+        db.add_all(SourcePage(source_id=source.id, url=root + path) for path in paths)
+        return source.id
+
+
+def _enqueue(factory, source_id):
+    from app.api.sources import enqueue_manual_collection
+    from app.core.config import Settings
+    from app.schemas.source import SourceReason
+
+    settings = Settings(database_url="sqlite+pysqlite://", api_key="oip-synthetic-fixture-only-not-a-real-key")
+    with factory() as db:
+        return enqueue_manual_collection(source_id, SourceReason(reason="PostgreSQL rehearsal"), db, settings).id
+
+
+def test_pg17_batch_claim_progress_and_failure_isolation(pg_factory, valid_onion_url, monkeypatch):
+    import asyncio
+    from fastapi import HTTPException
+
+    from app.api.sources import collection_progress
+    from app.collector.runner import collect_one
+    from app.collector.transport import Fetched, CollectError
+    from app.collector.worker import claim_one, process_one
+    from app.models import SourcePage
+
+    monkeypatch.setenv("OIP_COLLECTION_MAX_PENDING", "1")
+    monkeypatch.setenv("OIP_COLLECTION_MAX_RUNNING", "2")
+    source_id = _multi_url_source(pg_factory, valid_onion_url, ["", "catalogue", "forum"])
+    other_id = _multi_url_source(pg_factory, valid_onion_url + "other", [""])
+    gate = Barrier(2)
+
+    def submit():
+        gate.wait(timeout=8)
+        try:
+            return _enqueue(pg_factory, source_id)
+        except HTTPException as exc:
+            return exc.status_code
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        outcomes = [f.result(timeout=20) for f in (pool.submit(submit), pool.submit(submit))]
+    assert outcomes.count(409) == 1
+    with pytest.raises(HTTPException) as full:
+        _enqueue(pg_factory, other_id)
+    assert full.value.status_code == 429 and full.value.detail == "GLOBAL_QUEUE_FULL"
+
+    gate = Barrier(2)
+
+    def claim():
+        gate.wait(timeout=8)
+        return claim_one(pg_factory)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        claims = [f.result(timeout=20) for f in (pool.submit(claim), pool.submit(claim))]
+    assert claims.count(None) == 1
+    job_id, claimed_source, lease = next(claim for claim in claims if claim)
+    assert claimed_source == source_id
+    with pg_factory() as db:
+        progress = collection_progress(source_id, db)
+        assert (progress.total, progress.waiting, progress.running_url) == (3, 2, valid_onion_url)
+        failed_url = db.scalar(select(SourcePage.url).join(CrawlJob, CrawlJob.page_id == SourcePage.id)
+                               .where(CrawlJob.source_id == source_id, CrawlJob.status == "WAITING")
+                               .order_by(CrawlJob.created_at, CrawlJob.id).limit(1))
+
+    seen = []
+
+    async def fake_fetch(url):
+        seen.append(url)
+        if url == failed_url:
+            raise CollectError("FETCH_TIMEOUT")
+        return Fetched(200, "text/plain", "utf-8", b"Synthetic PostgreSQL observation")
+
+    async def complete():
+        assert (await collect_one(source_id, pg_factory, fetcher=fake_fetch,
+                                  existing_job_id=job_id, lease_token=lease))[1] == "COMPLETED"
+        assert await process_one(pg_factory, fetcher=fake_fetch)
+        assert await process_one(pg_factory, fetcher=fake_fetch)
+
+    asyncio.run(complete())
+    assert len(set(seen)) == 3 and seen[1] == failed_url
+    with pg_factory() as db:
+        progress = collection_progress(source_id, db)
+        assert (progress.total, progress.completed, progress.failed, progress.waiting) == (3, 2, 1, 0)
+        assert progress.running_url is None
+        assert progress.restriction == "SOURCE_COOLDOWN" and progress.retry_at > datetime.now(timezone.utc)
+        jobs = db.scalars(select(CrawlJob).where(CrawlJob.source_id == source_id)).all()
+        assert len({job.batch_id for job in jobs}) == 1 and jobs[0].batch_id is not None
+
+
+def test_pg17_expired_batch_lease_cannot_write_and_waiting_urls_resume(pg_factory, valid_onion_url):
+    import asyncio
+
+    from app.collector.runner import collect_one
+    from app.collector.transport import Fetched
+    from app.collector.worker import claim_one, process_one, recover_stale
+
+    root = valid_onion_url + "interrupted"
+    source_id = _multi_url_source(pg_factory, root, ["", "/next"])
+    _enqueue(pg_factory, source_id)
+    job_id, _, lease = claim_one(pg_factory)
+    seen = []
+
+    async def fake_next(url):
+        seen.append(url)
+        return Fetched(200, "text/plain", "utf-8", b"Synthetic recovered queue")
+
+    async def interrupted_fetch(url):
+        old = datetime.now(timezone.utc) - timedelta(minutes=2)
+        with pg_factory.begin() as db:
+            db.execute(update(CrawlJob).where(CrawlJob.id == job_id)
+                       .values(started_at=old, lease_expires_at=old))
+        assert recover_stale(pg_factory, minutes=1) == 1
+        assert await process_one(pg_factory, fetcher=fake_next)
+        return Fetched(200, "text/plain", "utf-8", b"Late synthetic result")
+
+    result = asyncio.run(collect_one(source_id, pg_factory, fetcher=interrupted_fetch,
+                                     existing_job_id=job_id, lease_token=lease))
+    assert result == (job_id, "FAILED")
+    assert seen == [root + "/next"]
+    with pg_factory() as db:
+        job = db.get(CrawlJob, job_id)
+        assert job.error_code == "WORKER_INTERRUPTED" and job.lease_token is None
+        assert db.scalar(select(func.count()).select_from(SourceObservation)
+                         .where(SourceObservation.job_id == job_id)) == 0

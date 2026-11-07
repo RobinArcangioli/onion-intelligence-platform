@@ -24,7 +24,7 @@ def test_m6c_up_down_on_disposable_sqlite(tmp_path):
                           "VALUES ('11111111111141118111111111111111','http://fixture.onion/','Fixture','approved')"))
     migrate('upgrade', 'head')
     with engine.begin() as conn:
-        assert conn.scalar(text('SELECT version_num FROM alembic_version')) == '0019_source_pages'
+        assert conn.scalar(text('SELECT version_num FROM alembic_version')) == '0020_collection_batches'
         assert inspect(conn).has_table('case_notification_policies')
         assert inspect(conn).has_table('case_notification_drafts')
         assert conn.scalar(text('SELECT COUNT(*) FROM onion_sources')) == 1

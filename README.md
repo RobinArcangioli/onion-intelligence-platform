@@ -72,6 +72,10 @@ Dans **Sources → Gérer les URL**, ajoute ou retire les adresses du groupe.
 Le bouton **Collecter** soumet toutes ses URL actives au worker Tor. Une
 vérification de navigateur reconnue apparaît comme un échec sur l’URL concernée.
 La file conserve une collecte en cours par groupe.
+**Gérer les URL** affiche la progression de la dernière veille, l’adresse en
+cours et le motif d’échec par URL. Lorsqu’une collecte est temporairement
+suspendue, OIP indique la date à partir de laquelle une nouvelle tentative
+est possible.
 
 **Visiter l’URL** affiche l’adresse et demande de confirmer son ouverture dans
 Tor Browser. Une fois la page atteinte, colle son URL finale dans OIP. Utilise

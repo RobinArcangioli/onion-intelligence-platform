@@ -10,17 +10,17 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db.session import get_session
 from app.core.config import Settings, get_settings
-from app.collector.policy import admission_lock, pending_full, read_policy, source_restriction, emergency_active
+from app.collector.policy import admission_lock, pending_full, read_policy, source_gate, emergency_active, operator_capture
 from app.collector.extract import extract_html
 from app.collector.runner import active_rules, analyze_page, store_observation
 from app.models import AuditLog, OnionSource, CrawlJob, SourceObservation, SourcePage, SourceSchedule
-from app.schemas.collection import JobOut, ObservationOut
+from app.schemas.collection import CollectionProgress, JobOut, ObservationOut
 from app.security.onion import canonical_onion_page
 from app.schemas.source import (
     SourceApproval, SourceAuditOut, SourceCreate, SourceHistory,
@@ -336,12 +336,16 @@ def enqueue_manual_collection(
             raise ValueError("Non canonique")
     except ValueError as exc:
         raise HTTPException(409, "Adresse Onion invalide") from exc
-    restriction = source_restriction(db, source_id, policy)
+    restriction = source_gate(db, source_id, policy)
     if restriction:
-        raise HTTPException(status_code=429, detail=restriction)
+        raise HTTPException(status_code=429, detail=restriction.code,
+                            headers={"X-OIP-Retry-At": restriction.retry_at.isoformat()})
     if pending_full(db, policy):
         raise HTTPException(status_code=429, detail="GLOBAL_QUEUE_FULL")
-    jobs = [CrawlJob(source_id=source_id, page_id=page_id, status="PENDING" if index == 0 else "WAITING")
+    batch_id = uuid.uuid4()
+    created_at = datetime.now(timezone.utc)
+    jobs = [CrawlJob(source_id=source_id, page_id=page_id, batch_id=batch_id, created_at=created_at,
+                     status="PENDING" if index == 0 else "WAITING")
             for index, (page_id, _) in enumerate(targets)]
     db.add_all(jobs)
     first = jobs[0]
@@ -354,6 +358,32 @@ def enqueue_manual_collection(
         raise HTTPException(status_code=409, detail="Une collecte est déjà en attente ou en cours") from exc
     db.refresh(first)
     return first
+
+
+@router.get("/{source_id}/collection/progress", response_model=CollectionProgress)
+def collection_progress(source_id: uuid.UUID, db: Session = Depends(get_session)) -> CollectionProgress:
+    source = _source(db, source_id)
+    active = CrawlJob.status.in_(("PENDING", "WAITING", "RUNNING"))
+    recent = db.scalar(select(CrawlJob)
+        .where(CrawlJob.source_id == source_id, ~operator_capture())
+        .order_by(case((active, 0), else_=1), CrawlJob.created_at.desc(), CrawlJob.id.desc()).limit(1))
+    if recent is None:
+        return CollectionProgress()
+    scope = CrawlJob.batch_id == recent.batch_id if recent.batch_id else CrawlJob.id == recent.id
+    scope = (CrawlJob.source_id == source_id, scope)
+    counts = dict(db.execute(select(CrawlJob.status, func.count())
+                             .where(*scope).group_by(CrawlJob.status)).all())
+    running_url = db.scalar(select(func.coalesce(SourcePage.url, source.canonical_url)).select_from(CrawlJob)
+                            .outerjoin(SourcePage, CrawlJob.page_id == SourcePage.id)
+                            .where(*scope, CrawlJob.status == "RUNNING").limit(1))
+    restriction = source_gate(db, source_id, read_policy()) if not any(
+        counts.get(state) for state in ("PENDING", "WAITING", "RUNNING")
+    ) else None
+    return CollectionProgress(
+        total=sum(counts.values()), completed=counts.get("COMPLETED", 0), failed=counts.get("FAILED", 0),
+        waiting=counts.get("PENDING", 0) + counts.get("WAITING", 0), running_url=running_url,
+        restriction=restriction.code if restriction else None, retry_at=restriction.retry_at if restriction else None,
+    )
 
 
 @router.get("/{source_id}/history", response_model=SourceHistory)

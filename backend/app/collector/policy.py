@@ -77,30 +77,41 @@ def _to_utc(value: datetime) -> datetime:
 
 
 def source_restriction(db: Session, source_id, policy: CollectionPolicy, *, now: datetime | None = None) -> str | None:
-    """Bounded manual quota plus time-limited circuit breaker for repeated failures.
+    gate = source_gate(db, source_id, policy, now=now)
+    return gate.code if gate else None
 
-    Circuit opens for one hour after N consecutive network failures (or a
-    configured interval). Only a NEW manual enqueue after expiry may proceed.
-    """
-    now = now or datetime.now(timezone.utc)
-    captured = select(SourceObservation.id).where(
+
+@dataclass(frozen=True)
+class SourceGate:
+    code: str
+    retry_at: datetime
+
+
+def operator_capture():
+    return select(SourceObservation.id).where(
         SourceObservation.job_id == CrawlJob.id, SourceObservation.origin == "OPERATOR_CAPTURE",
     ).exists()
-    latest = db.scalars(select(CrawlJob).where(CrawlJob.source_id == source_id, ~captured)
-                        .order_by(CrawlJob.created_at.desc(), CrawlJob.id.desc())
-                        .limit(max(1, policy.circuit_failures))).all()
-    if latest and policy.source_cooldown_seconds:
-        created = latest[0].created_at
-        if created and _to_utc(created) + timedelta(seconds=policy.source_cooldown_seconds) > now:
-            return "SOURCE_COOLDOWN"
-    # PENDING/RUNNING are checked separately by the active job constraint.
+
+
+def source_gate(db: Session, source_id, policy: CollectionPolicy, *, now: datetime | None = None) -> SourceGate | None:
+    """Give the active cooldown or circuit restriction and its exact expiry."""
+    now = now or datetime.now(timezone.utc)
+    latest = db.scalars(select(CrawlJob).where(CrawlJob.source_id == source_id, ~operator_capture())
+                        .order_by(CrawlJob.created_at.desc(), CrawlJob.finished_at.desc().nulls_last(),
+                                  CrawlJob.id.desc()).limit(policy.circuit_failures)).all()
+    if not latest:
+        return None
+    cooldown_until = _to_utc(latest[0].created_at) + timedelta(seconds=policy.source_cooldown_seconds)
+    cooldown = (SourceGate("SOURCE_COOLDOWN", cooldown_until)
+                if policy.source_cooldown_seconds and cooldown_until > now else None)
     if len(latest) >= policy.circuit_failures and all(
-        job.status == "FAILED" and job.error_code in _NETWORK_FAILURES for job in latest
+        job.status == "FAILED" and job.error_code in _NETWORK_FAILURES and job.finished_at for job in latest
     ):
-        finish = latest[0].finished_at
-        if finish and _to_utc(finish) + timedelta(seconds=policy.circuit_open_seconds) > now:
-            return "CIRCUIT_OPEN"
-    return None
+        finish = max(_to_utc(job.finished_at) for job in latest)
+        until = finish + timedelta(seconds=policy.circuit_open_seconds)
+        if until > now and (cooldown is None or until >= cooldown.retry_at):
+            return SourceGate("CIRCUIT_OPEN", until)
+    return cooldown
 
 
 def emergency_active(policy: CollectionPolicy) -> bool:

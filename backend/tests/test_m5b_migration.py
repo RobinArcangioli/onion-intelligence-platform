@@ -33,7 +33,7 @@ def test_existing_cti_preserved_and_ioc_table_is_additive(tmp_path):
                                 "'OBSERVED_REFERENCE',65,'[\"CVE_PATTERN\"]','1')"))
     upgrade('upgrade', 'head')
     with engine.begin() as connection:
-        assert connection.scalar(text('SELECT version_num FROM alembic_version')) == '0019_source_pages'
+        assert connection.scalar(text('SELECT version_num FROM alembic_version')) == '0020_collection_batches'
         assert connection.scalar(text('SELECT COUNT(*) FROM threat_indicators')) == 1
         indexes = {row['name'] for row in inspect(connection).get_indexes('ioc_candidates')}
         assert {'ix_ioc_candidate_source_created', 'ix_ioc_candidate_review',

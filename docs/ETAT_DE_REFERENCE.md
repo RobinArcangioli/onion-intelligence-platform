@@ -245,6 +245,25 @@ Cette confirmation couvre l’analyse manuelle et la publication. La collecte
 ordinaire sur une page réelle et l’ouverture via le lanceur Tor restent à
 vérifier séparément.
 
+### Qualification PostgreSQL de la file multi-URL
+
+La migration `0020_collection_batches` associe les jobs soumis lors d’une
+même veille. L’écran **Gérer les URL** affiche les compteurs, l’URL en cours,
+les erreurs par adresse et l’échéance de reprise donnée par le serveur.
+Une capture opérateur reste distincte de la progression d’une veille.
+
+La recette sur PostgreSQL 17 jetable a exécuté 19 tests, sans port hôte
+supplémentaire. Deux sessions concurrentes ont soumis la même veille et
+deux workers ont tenté de la prendre. Trois URL distinctes ont été traitées
+une fois chacune malgré un échec intermédiaire. Après expiration et
+réconciliation d’un bail, l’URL suivante a repris et le résultat tardif
+n’a produit aucune observation.
+
+Le dump synthétique a été chiffré avec `age` et restauré dans une base
+PostgreSQL 17 vierge. Les comptes des URL, jobs de veille, observations et
+publications sont identiques avant et après la restauration. La destination
+hors hôte, la politique de sauvegarde et la planification restent à valider.
+
 ## 3. Architecture présente
 
 Python 3.12, FastAPI, SQLAlchemy/Alembic, PostgreSQL 17 ; interface React 19 /

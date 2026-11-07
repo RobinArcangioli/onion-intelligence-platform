@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { api, downloadExport } from './lib/api';
-import { canCollectNow, jobLabel } from './lib/manualCollection';
+import { api, ApiError, downloadExport } from './lib/api';
+import { canCollectNow, collectionMessage, jobLabel } from './lib/manualCollection';
 import type { Alert, Audit, Classification, Correlation, Discovery, Indicator, IocCandidate, IocCorrelation, MentionQuality, CveIocLink, CtiReviewEvent, Job, Observation, Page, PublicReference, PublicReferenceEvidence, Report, Rule, Source, Watchlist } from './lib/types';
 import { APPROVAL, NOTE, dateTime, limit, localDateInput, priorDays, query, readableError, shortNumber } from './lib/util';
 import { DateCell, Empty, Icon, Mono, PageHead, Pager, Panel, Score, Status } from './components/ui';
@@ -119,7 +119,11 @@ export function Sources({token,refresh,onNotice,role}:Shared & {role:string}) {
       const job=await api.post<Job>(token,`/api/v1/sources/${s.id}/collection/run`,{reason:NOTE});
       setLatest(current=>({...current,[s.id]:job}));
       onNotice('Collecte ajoutée à la file. Le worker Tor la traitera dès qu’il sera actif.');
-    }catch(err){onNotice(readableError(err),'error');reload();}
+    }catch(err){
+      const message = err instanceof ApiError && err.status === 429
+        ? collectionMessage(err.message, err.retryAt) : readableError(err);
+      onNotice(message,'error');reload();
+    }
     finally{setEnqueuing(current=>current.filter(id=>id!==s.id));}
   }
   function resetForm(){setName('');setUrl('');setDesc('');setPriority(3);setConsent(false);setEdit(null);setShowForm(false);}

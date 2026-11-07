@@ -237,6 +237,11 @@ les observations restent dans le périmètre interne de D11–D13.
 
 ### MVP-02 — Qualifier file et scheduler inactif sur PostgreSQL (P1, M)
 
+**État** — La recette PostgreSQL 17 de la file multi-URL passe. Elle couvre
+l’admission concurrente, le quota, la prise en charge par deux workers,
+la poursuite après échec d’une URL et le rejet d’un résultat après expiration
+et réconciliation du bail. La revue du profil cible reste liée à MVP-03.
+
 Dépend de S04, adapté au modèle MVP-01. Développer des essais synthétiques avec
 sessions/processus PG17 réellement distincts : admissions simultanées d'une même
 source, quotas globaux, claim `SKIP LOCKED`, renouvellement/perte de bail, ancien
@@ -252,6 +257,9 @@ n'est pas une preuve de réalisation de cette tâche.
 
 ### MVP-03 — Supervision compatible avec un worker permanent (P1, M)
 
+**État** — La progression d’une veille et l’échéance de reprise sont
+visibles dans OIP. Le contrôle des services et le runbook restent à qualifier.
+
 Dépend de MVP-01/02. Introduire un profil explicite distinguant noyau privé sans
 collecte et collecte manuelle supervisée. Conserver le refus de Tor/worker dans
 le premier. Pour le second, vérifier présence et état des services attendus,
@@ -266,6 +274,10 @@ service inattendu signalé ; alerte sur incident simulé, sans URL/contenu/secre
 Runbook d'arrêt, diagnostic, réconciliation et reprise testé localement.
 
 ### MVP-04 — Sauvegardes automatiques et reprise (P1, M)
+
+**État** — Dump chiffré et restauration synthétique sur base vierge vérifiés
+avec `0020_collection_batches`. Le transfert hors hôte et la planification
+restent à qualifier.
 
 Conception parallélisable après S05 ; validation obligatoire avant exploitation
 durable. Définir avec le propriétaire la destination hors hôte, le chiffrement,

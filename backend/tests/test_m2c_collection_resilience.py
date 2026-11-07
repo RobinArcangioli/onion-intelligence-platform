@@ -95,6 +95,11 @@ def test_circuit_opens_for_three_consecutive_network_errors_and_expires(
             db.commit()
     denied = queue(client, sid)
     assert denied.status_code == 429 and denied.json()['detail'] == 'CIRCUIT_OPEN'
+    progress = client.get(f'/api/v1/sources/{sid}/collection/progress', headers=LEGACY).json()
+    assert progress["restriction"] == "CIRCUIT_OPEN"
+    retry_at = datetime.fromisoformat(denied.headers["X-OIP-Retry-At"])
+    assert retry_at == datetime.fromisoformat(progress["retry_at"])
+    assert retry_at > datetime.now(timezone.utc) + timedelta(minutes=59)
     with db_session_factory() as db:
         for job in db.scalars(select(CrawlJob)).all():
             job.finished_at = datetime.now(timezone.utc) - timedelta(hours=2)

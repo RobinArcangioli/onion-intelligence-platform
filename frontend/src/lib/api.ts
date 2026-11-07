@@ -1,7 +1,7 @@
 /** Same-origin API only. API key exists only in React memory, not localStorage or a cookie. */
 export class ApiError extends Error {
   public status: number;
-  constructor(status: number, message: string) { super(message); this.name = 'ApiError'; this.status = status; }
+  constructor(status: number, message: string, public readonly retryAt: string | null = null) { super(message); this.name = 'ApiError'; this.status = status; }
 }
 export function safePath(path: string): string {
   // Reject dot-segment normalization and URL encoding tricks before attaching a secret.
@@ -33,7 +33,7 @@ export async function request<T>(key: string, path: string, init: RequestInit = 
         detail = typeof message === 'string' ? message : undefined;
       }
     } catch { /* Invalid/error HTML response: do not expose it in the UI. */ }
-    throw new ApiError(response.status, detail || `HTTP ${response.status}`);
+    throw new ApiError(response.status, detail || `HTTP ${response.status}`, response.headers.get("X-OIP-Retry-At"));
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
