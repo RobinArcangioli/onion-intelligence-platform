@@ -193,9 +193,11 @@ catalogue réel dépend du registre et de la collecte par URL de MVP-01H.
 
 ### MVP-01H — Groupes d’URL, veille et aide à la découverte dans Tor (P1, L)
 
-**État** — Implémenté et validé sur données synthétiques. La recette opérateur
-avec un catalogue réel reste à faire. Les URL testées pour Cannaexpress,
-Black Ops et Eden ont présenté une attente ou une vérification.
+**État** — Implémenté et validé sur données synthétiques. Le 7 novembre 2026,
+le propriétaire a confirmé la recette opérateur de l’analyse immédiate,
+de l’alerte et de la consultation du rapport publié en mode visiteur.
+La collecte ordinaire sur une page réelle et l’ouverture via le lanceur
+Tor restent à vérifier séparément.
 
 Dans **Sources**, l’opérateur crée un groupe au nom de la marketplace et
 y saisit les URL qu’il souhaite surveiller. Chaque groupe affiche une liste
@@ -366,8 +368,10 @@ a quatre jobs verts : backend 362 réussites / six skips PG couverts dans les jo
 dédiés, 23 politiques réussies, frontend 17 tests + trois scénarios navigateur,
 PostgreSQL M4-B un test et M7-C 17 tests réussis, aucun skip dans les jobs PG.
 La migration `0018` et l’unicité de publication concurrente sont qualifiées sur
-PostgreSQL 17. La recette opérateur reste la prochaine vérification utilisateur.
+PostgreSQL 17. La recette opérateur de la publication et de la consultation
+visiteur est confirmée dans MVP-01H.
 La recette manuelle synthétique est disponible via `scripts/serve-visitor-demo.py`
 sur le port 8000 lorsque la passerelle locale est arrêtée. Pour la recette réelle
-des catalogues, la prochaine étape produit est **MVP-01H**. Les tâches
-MVP-02/03/04 couvrent en parallèle la qualification du worker et de l’exploitation.
+des catalogues, la vérification suivante de **MVP-01H** porte sur la collecte
+ordinaire. Les tâches MVP-02/03/04 couvrent en parallèle la qualification
+du worker et de l’exploitation.

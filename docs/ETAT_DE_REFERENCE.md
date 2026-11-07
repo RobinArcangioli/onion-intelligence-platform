@@ -238,8 +238,12 @@ selon la procédure habituelle. Les paramètres et fragments d’URL sont refus�
 
 La recette synthétique vérifie l’ajout seul, l’analyse immédiate, la veille
 sur trois URL, le signalement d’une page de vérification et la publication
-des compteurs. La recette avec un catalogue réel reste à faire. Le lanceur
-Linux s’enregistre séparément sur le poste où Tor Browser est installé.
+des compteurs. Le propriétaire a confirmé le parcours opérateur le
+7 novembre 2026 sur l’instance locale. Il a collé l’URL et le texte visible,
+obtenu une alerte, puis publié un rapport qu’il a consulté en mode visiteur.
+Cette confirmation couvre l’analyse manuelle et la publication. La collecte
+ordinaire sur une page réelle et l’ouverture via le lanceur Tor restent à
+vérifier séparément.
 
 ## 3. Architecture présente
 
