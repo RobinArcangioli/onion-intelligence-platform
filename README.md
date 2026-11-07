@@ -140,7 +140,7 @@ est historique, sans contrôle en temps réel.
 | Chemin | Rôle |
 |---|---|
 | `backend/app/` | API FastAPI, collecte, planification SQL, CTI, dossiers et contrôles |
-| `backend/alembic/versions/` | Migrations indispensables `0001` à `0017` |
+| `backend/alembic/versions/` | Chaîne de migrations de `0001` à la tête `0020_collection_batches` |
 | `backend/tests/` | Régressions synthétiques et recettes PostgreSQL isolées |
 | `frontend/src/` | Interface React / TypeScript |
 | `deploy/ovh/` | Profil privé, prévol, supervision, sauvegarde et restauration |
@@ -159,6 +159,8 @@ python3 scripts/verify-manifest.py
 python3 scripts/ci-index-audit.py
 python3 -m unittest discover -s deploy/ovh/tests -q
 ```
+
+Pour un push, suivre aussi la [procédure de publication GitHub](docs/publication-github.md).
 
 Le contrôle d'index lit les octets indexés, pas les modifications non indexées.
 Le manifeste racine décrit la copie stabilisée ; le [manifeste M7-C1.1 original](docs/handoff/M7C11_SOURCE_SHA256SUMS.txt)

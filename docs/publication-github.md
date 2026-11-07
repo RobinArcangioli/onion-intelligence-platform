@@ -1,34 +1,42 @@
-# Préparation GitHub — vérification avant le premier push
-
-*OIP v1.0.0-rc2 · Nettoyage documentaire sans changement fonctionnel*
+# Vérifications avant un push GitHub
 
 ## Ce qui a été retiré de la publication active
 
 Les notes de lots `docs/00-*` à `docs/17-*`, le schéma SQL d'aperçu (`bootstrap-postgresql-preview.sql`), le README frontend obsolète et le validateur historique `validate-lot8.sh` sont remplacés par une documentation cohérente et les scripts courants.
 
-**Ne supprimez pas** `backend/README.md` (requis par la construction Python), les tests `backend/tests/test_*_lot*.py`, les migrations Alembic 0001–0008, le code Tor, `compose.yaml`, les scripts de sauvegarde/restauration ni `frontend/tests` : ils font partie de la distribution maintenable. **Versionnez** `frontend/package-lock.json`, généré sur votre machine et absent de l'archive RC2 historique.
+Conservez `backend/README.md`, requis par la construction Python, les tests
+des lots, toute la chaîne de migrations Alembic, le code Tor, `compose.yaml`,
+les outils de dump local avant migration et de restauration, et
+`frontend/tests`. Les verrous Python et npm font partie du dépôt.
 
 ## Procédure sûre
 
 ```bash
 cd ~/onion-intelligence-platform
-git status --short                           # inspecter les modifications existantes
-python3 scripts/cleanup-legacy-docs.py      # simulation, ne modifie rien
-python3 scripts/cleanup-legacy-docs.py --apply  # uniquement les anciens fichiers reconnus sans changement
-
-git add README.md docs/ .gitignore .dockerignore .gitattributes scripts/
-git add frontend/package-lock.json          # indispensable pour une release reproductible
-python3 scripts/pre-push-audit.py           # audit des fichiers suivis + historique
-sudo bash scripts/validate-v1.sh --release
-
+git status --short --branch
 git diff --cached --stat
 git diff --cached --check
-git status --short
+python3 scripts/verify-manifest.py
+python3 scripts/ci-index-audit.py
+python3 scripts/pre-push-audit.py --allow-historical-notes
 ```
 
-`cleanup-legacy-docs.py` **refuse** de supprimer un fichier historique s'il diffère de l'archive RC2 de référence. Les opérations sont limitées à une liste explicite, ne touchent pas aux fichiers inconnus ni aux données privées. Si une ancienne note a été modifiée, traitez-la manuellement avant de réexécuter `--apply` ; ne l'écrasez pas.
+Lancez l’audit sur l’index destiné au commit et rejouez-le après le commit local
+pour examiner son message. Comparez les commits à publier à des références
+distantes actualisées. L’option `--allow-historical-notes` convient au dépôt
+public existant après avoir vérifié que les anciennes notes signalées sont
+déjà accessibles depuis les branches publiques. Les contrôles de secrets et
+de chemins privés restent bloquants.
 
-Le manifeste SHA-256 fourni vérifie uniquement les fichiers de **la distribution livrée** et non vos données locales ni le lockfile npm généré sur votre machine. Un succès du manifeste ne prouve **pas** la propreté de l'index Git. Le contrôle `pre-push-audit.py` inspecte l'index et l'historique, y compris les blobs suspectés d'héberger des secrets. Les sorties ne contiennent pas les valeurs détectées.
+Le manifeste SHA-256 couvre les fichiers de la distribution, dont le verrou
+npm suivi. L’audit d’index examine les fichiers préparés pour le commit.
+L’audit avant push parcourt aussi l’historique local, les messages de commit
+et les tags annotés. Les sorties masquent les valeurs détectées.
+
+La qualification de livraison sans démarrage de services est décrite dans le
+[README](../README.md#repères-techniques). `validate-v1.sh --release` peut
+recréer les services Compose et appliquer les migrations via le démarrage
+de l’API. Réservez ce script à une instance de recette dédiée.
 
 ## Fichiers à proscrire absolument
 
@@ -38,7 +46,7 @@ Le manifeste SHA-256 fourni vérifie uniquement les fichiers de **la distributio
 
 ## Contrôles d'historique et fuite de secrets
 
-1. Exécutez `python3 scripts/pre-push-audit.py` dans votre vrai dépôt, pas dans un simple ZIP. Le script analyse les fichiers **indexés** et parcourt les objets de commits locaux ; la sortie affiche seulement les chemins/références suspectes.
+1. Exécutez l’audit avant push depuis le dépôt Git. Les résultats indiquent les chemins ou références suspects et la catégorie détectée.
 2. Si une valeur secrète a été commitée dans le passé, **bloquez le push**. Faites d'abord la rotation/révocation du secret. Puis purge du dépôt avec un outil de réécriture d'historique adapté (`git filter-repo`, en clone de travail après sauvegarde et validation). N'effacez pas à l'aveugle les tags ou le dépôt existant.
 3. Si un dépôt distant existe déjà, la réécriture exige une coordination avec ses utilisateurs et la suppression des anciennes références/snapshots. Refaire le push ne garantit jamais la disparition d'une fuite.
 4. Inspectez aussi les éventuelles branches/tags non fusionnés. Un simple `git status` propre ne prouve pas l'absence de fichiers indésirables dans les commits précédents.
@@ -50,11 +58,11 @@ Les identifiants historiques partagés hors Git (clé API, mot de passe PostgreS
 - [ ] Vérification des modifications et suppressions prévues dans `git diff --cached --stat`.
 - [ ] Aucun secret ni donnée réelle dans les fichiers suivis ou dans **aucun commit accessible**.
 - [ ] `frontend/package-lock.json` suivi par Git et conforme à `package.json` (`npm ci`).
-- [ ] Audits en ligne réussis au moment de la publication ; tests backend, TypeScript et Chromium confirmés.
+- [ ] Tests backend, TypeScript et Chromium confirmés. Le contrôle de livraison doit passer avant toute promotion. Le propriétaire autorise explicitement chaque push sur la branche de travail.
 - [ ] `.env` local renouvelé, mot de passe PostgreSQL réel et jetons sensibles révoqués si nécessaire.
 - [ ] Exposition de Nginx conservée à `127.0.0.1`, Tor/worker/DB sans ports publiés.
 - [ ] Absence de captures, backups, logs et données Onion dans la distribution publique.
-- [ ] **Licence** décidée par le titulaire des droits et ajoutée seulement avec son autorisation. À défaut, indiquer clairement qu'aucune licence de réutilisation n'est accordée.
+- [ ] Toute décision de licence relève du titulaire des droits et est reportée après le MVP.
 - [ ] Tag de référence `v1.0.0-rc2` conservé, puis commit de polissage distinct ; **pas de `v1.0.0` stable** avant recette fonctionnelle et rotation des secrets.
 
 ## Ce que l'audit automatique ne prouve pas

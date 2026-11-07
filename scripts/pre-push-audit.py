@@ -6,7 +6,6 @@ Does not fetch, push, rewrite history, or open network connections.
 """
 from __future__ import annotations
 import argparse
-import hashlib
 import re
 import subprocess
 import sys
@@ -18,17 +17,20 @@ MAX_BYTES = 4 * 1024 * 1024
 BAD_PARTS = frozenset({'node_modules', '__pycache__', '.pytest_cache', '.venv',
                        'venv', '.git', 'backups', 'exports', 'observations',
                        'dist', 'test-results', 'playwright-report', '.playwright',
-                       '.idea', '.vscode', '.ipynb_checkpoints'})
+                       '.idea', '.vscode', '.ipynb_checkpoints',
+                       '.ssh', '.aws', 'secrets', 'private'})
 BAD_EXT = frozenset({'.db', '.sqlite', '.sqlite3', '.dump', '.bak', '.zip', '.7z', '.rar',
                      '.pem', '.p12', '.pfx', '.kdbx', '.log', '.key', '.ipynb',
-                     '.png', '.jpg', '.jpeg', '.webp', '.mp4', '.mkv', '.swp'})
+                     '.png', '.jpg', '.jpeg', '.webp', '.mp4', '.mkv', '.swp',
+                     '.tar', '.tgz', '.xz', '.zst'})
 BAD_NAMES = frozenset({'id_rsa', 'id_ed25519', 'credentials', 'credentials.json',
-                       '.ds_store', 'thumbs.db'})
+                       '.ds_store', 'thumbs.db', 'known_hosts.private'})
 # Each expression deliberately looks for a recognizable credential *shape*.
 # Test placeholders, environment variable references and hash digests are excluded.
 SECRET_PATTERNS = {
     'private-key-block': re.compile(rb'-----BEGIN (?:RSA |OPENSSH |EC |DSA |ENCRYPTED )?PRIVATE KEY-----'),
     'github-token': re.compile(rb'\b(?:gh[pousr]_[A-Za-z0-9_]{25,}|github_pat_[A-Za-z0-9_]{30,})\b'),
+    'gitlab-token': re.compile(rb'\bglpat-[A-Za-z0-9_-]{18,}\b'),
     'aws-access-id': re.compile(rb'\b(?:AKIA|ASIA)[A-Z0-9]{16}\b'),
     'slack-token': re.compile(rb'\bxox[baprs]-[A-Za-z0-9-]{20,}\b'),
     'oip-api-key-assignment': re.compile(rb'(?m)^\s*(?:export\s+)?OIP_API_KEY\s*=\s*["\']?[a-fA-F0-9]{48,}["\']?\s*$'),
@@ -49,11 +51,9 @@ def bad_path(path: str) -> bool:
     name = p.name.lower()
     if (name == '.env' or (name.startswith('.env.') and name != '.env.example')
             or name in BAD_NAMES or name.startswith('pasted text')
-            or name.startswith('secrets.') or name.endswith(('.secret', '.token'))):
+            or name.startswith('secrets.') or name.endswith(('.secret', '.token', '.tar.gz'))):
         return True
     if any(part.lower() in BAD_PARTS for part in parts) or p.suffix.lower() in BAD_EXT:
-        return True
-    if name.startswith('oip_') and name.endswith('.zip'):
         return True
     return False
 
@@ -64,8 +64,8 @@ def classify(data: bytes) -> list[str]:
     return [kind for kind, expression in SECRET_PATTERNS.items() if expression.search(data)]
 
 
-def blob(oid: str) -> bytes | None:
-    res = git('cat-file', 'blob', oid)
+def read_object(kind: str, oid: str) -> bytes | None:
+    res = git('cat-file', kind, oid)
     return res.stdout if res.returncode == 0 else None
 
 
@@ -114,7 +114,7 @@ def main() -> int:
     # A path in history is not removed by deleting it in HEAD. More importantly,
     # a token in any reachable blob remains retrievable after push.
     if not args.no_history:
-        revs = git('rev-list', '--objects', '--all')
+        revs = git('rev-list', '--objects', '--all', 'HEAD')
         if revs.returncode:
             errors.add('HISTORY: could not list reachable Git objects')
         else:
@@ -131,7 +131,7 @@ def main() -> int:
                     obsolete_docs += 1
             print(f'HISTORY: {len(objects)} reachable objects; historical numbered-doc references: {obsolete_docs}')
             if obsolete_docs:
-                msg = 'Historical lot notes remain accessible through old commits/tags. For a clean public initial release, use a NEW public repository with one sanitized root commit; keep private history separately.'
+                msg = 'Historical lot notes are reachable. Review whether any would become newly public before pushing.'
                 if args.allow_historical_notes:
                     warnings.add(msg)
                 else:
@@ -143,24 +143,35 @@ def main() -> int:
                 errors.add('HISTORY: cannot query all object types/sizes')
             else:
                 scan_total = 0
+                messages = 0
                 for line in batch.stdout.splitlines():
                     fields = line.decode('ascii', 'replace').split()
-                    if len(fields) != 3 or fields[1] != 'blob':
+                    if len(fields) != 3:
+                        errors.add('HISTORY: invalid or missing Git object metadata')
                         continue
-                    oid, _, size_s = fields
-                    size = int(size_s)
+                    oid, kind, size_s = fields
+                    if kind not in {'blob', 'commit', 'tag'}:
+                        continue
                     path = objects.get(oid, '')
-                    if size > MAX_BYTES:
-                        errors.add(f'HISTORY: unscanned large blob {oid[:12]} size={size} bytes (path {path or "unknown"})')
+                    if int(size_s) > MAX_BYTES:
+                        errors.add(f'HISTORY: unscanned large {kind} {oid[:12]} ({path or "no path"})')
                         continue
-                    data = blob(oid)
+                    data = read_object(kind, oid)
                     if data is None:
-                        errors.add(f'HISTORY: unreadable blob {oid[:12]}')
+                        errors.add(f'HISTORY: unreadable {kind} {oid[:12]}')
                         continue
-                    scan_total += 1
-                    for kind in classify(data):
-                        errors.add(f'HISTORY: possible {kind} in blob {oid[:12]} ({path or "unknown path"}); value hidden')
-                print(f'HISTORY: inspected {scan_total} reachable blobs for high-confidence secret patterns')
+                    if kind == 'blob':
+                        scan_total += 1
+                        label = f'blob {oid[:12]} ({path or "unknown path"})'
+                    else:
+                        messages += 1
+                        data = data.partition(b'\n\n')[2]
+                        label = f'{kind} message {oid[:12]}'
+                    for match in classify(data):
+                        errors.add(f'HISTORY: possible {match} in {label}; value hidden')
+                print(f'HISTORY: inspected {scan_total} reachable blobs and {messages} commit/tag messages')
+        if git('fsck', '--full', '--no-reflogs', '--no-unreachable').returncode:
+            errors.add('HISTORY: Git object integrity check failed')
     else:
         errors.add('HISTORY: not checked (--no-history); this mode is insufficient to authorize a public push')
 

@@ -5,6 +5,10 @@
 > [la roadmap active](../../docs/ROADMAP_ET_DECISIONS.md). Les statuts et backlogs
 > ci-dessous ne constituent pas une photographie actuelle d’OVH ni une
 > autorisation d’intervention.
+>
+> Les entrées relatives à la sauvegarde externe retracent le plan de l’époque.
+> La décision actuelle exclut les transferts hors hôte et prévoit uniquement
+> un dump local avant migration.
 
 Échelle relative : XS < S < M < L < XL. La **valeur** et le **risque** sont qualitatifs, non des promesses de calendrier. Les durées du document de passation (J0–J5, S1–S16+) sont à revalider après premiers essais en infrastructure.
 

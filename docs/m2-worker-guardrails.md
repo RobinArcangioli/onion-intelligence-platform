@@ -4,9 +4,9 @@
 > annoncées ci-dessous décrivent la rédaction de ce guide. Pour l’état actuel
 > de référence, lire [État de référence](ETAT_DE_REFERENCE.md) et
 > [Roadmap et décisions](ROADMAP_ET_DECISIONS.md). La décision MVP du
-> 5 novembre 2026 prévoit un admin connecté par jeton API individuel et une vitrine
-> visiteur limitée ; ce modèle n’est pas encore implémenté. Ce guide
-> n’autorise aucune action OVH.
+> 5 novembre 2026 retient le jeton API individuel pour l’administration et
+> une vitrine visiteur en lecture seule. Leur mise en œuvre est décrite dans
+> l’état de référence. Ce guide n’autorise aucune action OVH.
 
 Ce lot est **du code source à tester hors production**, pas une instruction pour activer Tor. Le VPS OVH reste en profil `db + api + gateway`, avec `OIP_MANUAL_COLLECTION_ENABLED=false` et sans `tor`/`queue_worker`. Aucun schéma, migration, minuterie ou collecte réelle n'est ajouté. La politique contractuelle du fournisseur doit être validée avant un pilote Tor.
 

@@ -4,9 +4,9 @@
 > annoncées ci-dessous décrivent la rédaction de ce guide. Pour l’état actuel
 > de référence, lire [État de référence](ETAT_DE_REFERENCE.md) et
 > [Roadmap et décisions](ROADMAP_ET_DECISIONS.md). La décision MVP du
-> 5 novembre 2026 prévoit un admin connecté par jeton API individuel et une vitrine
-> visiteur limitée ; ce modèle n’est pas encore implémenté. Ce guide
-> n’autorise aucune action OVH.
+> 5 novembre 2026 retient le jeton API individuel pour l’administration et
+> une vitrine visiteur en lecture seule. Leur mise en œuvre est décrite dans
+> l’état de référence. Ce guide n’autorise aucune action OVH.
 
 *OIP v1.0.0-rc2 · Document de référence pour la maintenance du code gelé*
 
@@ -17,7 +17,7 @@
 | `backend/app/api/` | Routes FastAPI authentifiées et lecture de données |
 | `backend/app/collector/` | Transport Tor, traitement d'une source et worker de jobs manuels |
 | `backend/app/models/` | Tables SQLAlchemy réellement implémentées |
-| `backend/alembic/versions/` | Migrations historiques indispensables (0001 à 0008) |
+| `backend/alembic/versions/` | Chaîne de migrations depuis `0001` jusqu’à la tête de la branche |
 | `backend/tests/` | Régressions, rôles, migrations et confinement |
 | `frontend/src/` | Pages React, navigation et API cliente same-origin |
 | `frontend/e2e/` | Tests navigateur Playwright sans collecte réelle |
@@ -26,7 +26,7 @@
 
 ## API HTTP
 
-Le navigateur s'adresse **uniquement** à l'origine locale. Toutes les routes métier protégées utilisent l'en-tête `X-API-Key: <jeton-personnel>`. La documentation interactive FastAPI est accessible localement par `/docs` et `/openapi.json` lorsque la passerelle tourne. Ne publiez pas leur URL sur une interface publique.
+Le navigateur s'adresse **uniquement** à l'origine locale. Toutes les routes métier protégées utilisent l'en-tête `X-API-Key: <jeton-personnel>`. L’application FastAPI fournit la documentation interactive et le schéma à `/docs` et `/openapi.json`. La passerelle masque ces deux routes.
 
 | Route / groupe | Usage |
 |---|---|

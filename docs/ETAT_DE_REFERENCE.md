@@ -81,7 +81,7 @@ Ces choix D11–D13 sont actés. Les API de vitrine et la publication sont
 implémentées dans l’incrément actif ; le rôle `VIEWER` ne devient pas anonyme.
 La décision de licence est reportée après le MVP et exclue de la roadmap.
 
-### Incrément actif — accès visiteur et frontière publique
+### Premier incrément — accès visiteur et frontière publique
 
 Branche **`feature/mvp-visitor-public-boundary`**, commit applicatif
 **`e75d67863982cc08523e9e066e0c11485e7973d4`**, issue de `cd7c343` (clarification
@@ -193,7 +193,7 @@ recommandations. Les deux fiches portent une mention de simulation. La confirmat
 admin porte sur une empreinte de l’aperçu complet. La version publiée reste figée
 jusqu’au retrait. Les réponses publiques s’appuient sur un schéma explicite, distinct
 des observations et des alertes internes. Les publications `PUBLIC_TOTALS_V1` restent
-lisibles. La tête Alembic reste `0018`.
+lisibles. La tête Alembic était encore `0018` pour cet incrément.
 
 La [recette manuelle](../README.md#simulation-complète-de-deux-fuites-fictives)
 utilisait le port 8012 avant la consolidation sur le port 8000. La recette
@@ -572,14 +572,14 @@ des services, du réseau ou des sauvegardes historiques.
 | Écart | Traitement de stabilisation |
 |---|---|
 | README empilant les lots et « non déployé » | Remplacé par portail vers les deux références ; guides de détail conservés |
-| Architecture/API historiques : head `0008`, docs gateway accessibles, absence de scheduler | Balisés historiques ; état courant ci-dessus : head `0017`, docs masquées, scheduler présent opt-in |
+| Architecture/API historiques : head `0008`, docs gateway accessibles, absence de scheduler | Tête de la branche `0020_collection_batches`, documentation API masquée par la passerelle et scheduler présent sur profil opt-in. La tête `0017` reste celle de la passation M7-C1.1. |
 | Backlog OVH initial présentant tout M2–M7 comme restant | Balisé historique ; roadmap active unique avec preuves et dépendances |
 | M7-C et M4-B annonçant PostgreSQL jamais passé | Statuts historiques explicités ; résultats CI datés centralisés ici |
 | Retry, purge ou notifications présentés comme étapes implicites | Aucun ajout automatique : pas de retry, purge absente, brouillons seulement |
 | Manifeste du paquet confondu avec arbre stabilisé | Original conservé, manifeste courant distinct par sa provenance |
 | Guide de reprise après crash antérieur aux baux | Ne pas suivre les anciennes commandes ; contrat M2-B/C et validation de runbook restant nécessaires |
 | Versions et builds | Verrous transitifs, versions CI/Docker alignées et digests fixés. Avis système bloquants à traiter avant promotion. |
-| Auditeur historique recommandant une nouvelle racine | Conseil générique contraire à la stratégie acceptée ; conserver historique et références, ne pas l'appliquer |
+| Auditeurs Git redondants | Règles regroupées dans `scripts/pre-push-audit.py`. La CI applique ces règles à l’index et le contrôle avant push inclut l’historique, les messages de commit et les tags annotés. |
 
 Les migrations, tests historiques, scripts utiles, branches, tags et archives de
 passation sont conservés. Aucun nettoyage de base, suppression d’archive locale, import de M7-C2/C3/C4,

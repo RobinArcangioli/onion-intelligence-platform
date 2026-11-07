@@ -93,8 +93,8 @@ le sauter ou supprimer son assertion pour obtenir un faux vert.
 S02 ne supprime ni archive de passation, ni migration, ni test de lot, ni branche.
 Les anciennes contradictions restent lisibles avec un avertissement de provenance
 pour éviter une réécriture spéculative des procédures avant validation technique.
-Le script `cleanup-legacy-docs.py` est en dry run par défaut ; son existence n'est
-pas une raison de lancer une suppression large.
+Le nettoyage ponctuel des fichiers RC2 est terminé. Le script associé a été
+retiré de la branche de travail et reste consultable dans l’historique.
 
 ## 5. Construire le MVP local : ordre de dépendance
 
@@ -328,7 +328,7 @@ et la recette. Un résultat haut ou critique bloque la promotion.
 
 | ID | Dépendances | Travail et critères d'acceptation |
 |---|---|---|
-| OPS-01 / P1 / M | MVP-01/02/03/05/06 et MVP-01V | Plan staging/promote/rollback sur schéma cible `0018` (base historique `0017`), dump local avant migration, vérification de compatibilité applicative ; distinguer rollback image et restauration DB ; ne pas utiliser un downgrade destructif comme sauvegarde |
+| OPS-01 / P1 / M | MVP-01/02/03/05/06 et MVP-01V | Plan staging, promotion et retour arrière jusqu’à `0020_collection_batches` (tête actuelle de la branche), depuis le schéma à constater sur la cible. Dump local avant migration et vérification de compatibilité applicative. Distinguer le retour à une image précédente de la restauration DB. Un downgrade destructif est exclu du plan de sauvegarde. |
 | OPS-02 / P1 / M | OPS-01 + instruction d'accès distante explicite | Inventaire actuel OVH expurgé, vérification du périmètre de l'autorisation fournisseur déclaré historiquement, revue IPv4/IPv6/DNS/SOCKS/ports, tests stop/absence de fallback sur l'hôte autorisé ; résultats datés, aucune revendication d'anonymat absolu |
 | OPS-03 / P1 / S | OPS-02 + point de retour local vérifié pour la migration + GO explicite | Pilote de durée convenue, un worker initialement, concurrence réglée et sources de démonstration autorisées ; scheduler inactif ; preuves des transitions, arrêt et reprise ; seuils et incidents suivis |
 | OPS-04 / P1 / S | OPS-03 | Recette opérateur, limites connues, SLO modestes mesurés, coûts et runbooks ; deux références actualisées avec SHA/run/date ; validation MVP par le propriétaire |

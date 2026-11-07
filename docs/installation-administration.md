@@ -4,9 +4,9 @@
 > annoncées ci-dessous décrivent la rédaction de ce guide. Pour l’état actuel
 > de référence, lire [État de référence](ETAT_DE_REFERENCE.md) et
 > [Roadmap et décisions](ROADMAP_ET_DECISIONS.md). La décision MVP du
-> 5 novembre 2026 prévoit un admin connecté par jeton API individuel et une vitrine
-> visiteur limitée ; ce modèle n’est pas encore implémenté. Ce guide
-> n’autorise aucune action OVH.
+> 5 novembre 2026 retient le jeton API individuel pour l’administration et
+> une vitrine visiteur en lecture seule. Leur mise en œuvre est décrite dans
+> l’état de référence. Ce guide n’autorise aucune action OVH.
 
 *OIP v1.0.0-rc2 · Environnement local Linux + Docker Compose*
 
@@ -98,11 +98,13 @@ sudo docker compose logs --tail=50 api gateway
 sudo docker compose --profile tor logs --tail=50 tor queue_worker
 ```
 
-La validation `--release` utilise les registres publics npm et PyPI pour l'audit des dépendances et requiert `frontend/package-lock.json` et les navigateurs Playwright. Elle ne visite pas de source Onion. Générer et versionner le lockfile si absent :
-
-```bash
-(cd frontend && npm install --package-lock-only --ignore-scripts --no-fund)
-```
+Les deux modes de `validate-v1.sh` construisent et démarrent des services
+Compose. Utilisez-les sur une instance de recette dédiée. L’API applique les
+migrations au démarrage. Le mode `--release` analyse les verrous suivis et
+les images candidates avec Trivy et requiert Chromium pour la recette
+Playwright. La recette navigateur emploie des données synthétiques. Pour
+vérifier uniquement la livraison sans démarrer de service, suivez les commandes
+de qualification dans le [README](../README.md#repères-techniques).
 
 Ne copiez **jamais** la sortie complète de `docker compose config --format json` dans un rapport : elle peut inclure des variables d'environnement contenant des secrets. Utilisez `docker compose config --quiet` pour un contrôle humain.
 
