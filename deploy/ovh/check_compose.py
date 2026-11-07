@@ -4,6 +4,7 @@
 Run as `docker compose ... config --format json | python3 check_compose.py`.
 Do not save the resolved configuration in a file or expose it in CI logs.
 """
+import argparse
 import json
 import sys
 
@@ -16,7 +17,8 @@ def _require(condition: bool, msg: str) -> None:
         raise ValueError(msg)
 
 
-def validate(obj: dict) -> None:
+def validate(obj: dict, profile: str = "private") -> None:
+    _require(profile in ("private", "manual"), "unknown profile")
     services = obj["services"]
     networks = obj["networks"]
     _require(CORE <= services.keys(), "missing core service")
@@ -57,7 +59,18 @@ def validate(obj: dict) -> None:
     db_env = services["db"].get("environment", {})
     api_env = services["api"].get("environment", {})
     _require(api_env.get("OIP_LEGACY_API_KEY_ENABLED", "false").lower() == "false", "legacy API key enabled")
-    _require(api_env.get("OIP_MANUAL_COLLECTION_ENABLED") == "false", "manual enqueue gate not disabled")
+    expected = "true" if profile == "manual" else "false"
+    _require(api_env.get("OIP_MANUAL_COLLECTION_ENABLED") == expected, "manual enqueue gate does not match profile")
+    if profile == "manual":
+        _require({"tor", "queue_worker"} <= services.keys(), "manual profile requires Tor and queue worker")
+        worker = services["queue_worker"]
+        _require(worker.get("environment", {}).get("OIP_TOR_COLLECTION_ENABLED") == "true",
+                 "worker Tor gate is disabled")
+        _require(set(worker.get("networks", {})) == {"private", "tor_proxy"}, "unexpected worker network")
+        _require(set(services["tor"].get("networks", {})) == {"tor_proxy", "tor_egress"}, "unexpected Tor network")
+        _require(networks.get("tor_proxy", {}).get("internal") is True, "Tor proxy network not internal")
+        _require(worker.get("read_only") is True and "ALL" in worker.get("cap_drop", []),
+                 "worker filesystem or capabilities are not restricted")
     _require(api_env.get("OIP_TOR_COLLECTION_ENABLED") == "false", "Tor collection gate not disabled")
     password = db_env.get("POSTGRES_PASSWORD", "")
     key = api_env.get("OIP_API_KEY", "")
@@ -76,12 +89,15 @@ def validate(obj: dict) -> None:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--profile", choices=("private", "manual"), default="private")
+    args = parser.parse_args()
     try:
-        validate(json.load(sys.stdin))
+        validate(json.load(sys.stdin), args.profile)
     except (ValueError, TypeError, KeyError, json.JSONDecodeError, AttributeError) as exc:
         print(f"NO-GO: OVH Compose check: {exc}", file=sys.stderr)
         return 1
-    print("PASS: OVH core-only private Compose checks (no credentials displayed)")
+    print(f"PASS: Compose {args.profile} profile checks")
     return 0
 
 

@@ -8,8 +8,8 @@ from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import func, select, text
-from sqlalchemy.orm import Session
+from sqlalchemy import func, or_, select, text
+from sqlalchemy.orm import Session, aliased
 
 from app.models import CrawlJob, SourceObservation
 
@@ -66,6 +66,14 @@ def admission_lock(db: Session) -> None:
 
 def pending_full(db: Session, policy: CollectionPolicy) -> bool:
     return (db.scalar(select(func.count(func.distinct(CrawlJob.source_id))).where(CrawlJob.status.in_(("PENDING", "WAITING")))) or 0) >= policy.max_pending
+
+
+def eligible_jobs():
+    active = aliased(CrawlJob)
+    source_busy = select(active.id).where(
+        active.source_id == CrawlJob.source_id, active.status.in_(("PENDING", "RUNNING")),
+    ).exists()
+    return or_(CrawlJob.status == "PENDING", (CrawlJob.status == "WAITING") & ~source_busy)
 
 
 def running_full(db: Session, policy: CollectionPolicy) -> bool:

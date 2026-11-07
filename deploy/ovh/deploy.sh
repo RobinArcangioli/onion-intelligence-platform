@@ -30,7 +30,7 @@ check() {
 ensure_tor_stopped() {
   local running
   running="$("${compose[@]}" ps --status running --services 2>/dev/null)" || die 'Cannot inspect running services'
-  if grep -Eq '^(tor|collector|queue_worker)$' <<< "$running"; then
+  if grep -Eq '^(tor|collector|queue_worker|scheduler)$' <<< "$running"; then
     die 'Tor/collector/worker already running: stop and investigate BEFORE OVH P0 deployment'
   fi
 }
@@ -56,9 +56,9 @@ case "${1:-}" in
     check
     ensure_tor_stopped
     # Existing PostgreSQL volume => API boot may apply Alembic migrations.
-    # Demand a separately verified, encrypted offsite backup before upgrading.
+    # Require explicit attestation of a local pre-migration dump.
     if docker volume inspect onion-intelligence-platform_postgres_data >/dev/null 2>&1; then
-      [[ "${OIP_BACKUP_VERIFIED:-}" == yes ]] || die 'Existing DB: verify an offsite restore, then set OIP_BACKUP_VERIFIED=yes for this invocation'
+      [[ "${OIP_LOCAL_MIGRATION_BACKUP_VERIFIED:-}" == yes ]] || die 'Existing DB: verify the local pre-migration dump, then set OIP_LOCAL_MIGRATION_BACKUP_VERIFIED=yes for this invocation'
     fi
     "${compose[@]}" up --build -d db api gateway
     ensure_tor_stopped

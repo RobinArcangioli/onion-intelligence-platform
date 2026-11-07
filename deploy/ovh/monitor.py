@@ -1,32 +1,41 @@
 #!/usr/bin/env python3
-"""Local, low-overhead OIP health probe. Never touches Tor or external URLs."""
+"""Probe local OIP services and write only operational diagnostics."""
+import argparse
 import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
 import sys
-import time
+import tempfile
 from urllib.error import HTTPError, URLError
-from urllib.request import build_opener, ProxyHandler
+from urllib.request import build_opener, HTTPRedirectHandler, ProxyHandler
 
 PROJECT = 'onion-intelligence-platform'
-ROOT = Path(__file__).resolve().parents[2]
 SERVICES = ('db', 'api', 'gateway')
-REQUIRE_BACKUP = os.environ.get('OIP_MONITOR_REQUIRE_BACKUP', '0') == '1'
-STAMP = Path('/var/lib/oip-monitor/last-backup-ok')
+WORKER_SERVICES = ("tor", "queue_worker")
+WORKER_ISSUES = {
+    "WORKER_PULSE_STALE": "worker pulse missing or stale",
+    "TOR_PROXY_UNAVAILABLE": "local Tor SOCKS endpoint unavailable",
+    "QUEUE_LEASE_EXPIRED": "running job has an expired or missing lease",
+    "QUEUE_NOT_PROGRESSING": "eligible job waiting at least five minutes",
+    "WORKER_CHECK_UNAVAILABLE": "worker queue or database check unavailable",
+}
 
 
 def docker(*args):
-    proc = subprocess.run(['docker', *args], capture_output=True, text=True, timeout=15, check=False)
+    env = {key: value for key, value in os.environ.items() if key not in ("DOCKER_HOST", "DOCKER_CONTEXT")}
+    proc = subprocess.run(["docker", "--host", "unix:///var/run/docker.sock", *args],
+                          env=env, capture_output=True, text=True, timeout=15, check=False)
     if proc.returncode:
         raise RuntimeError('docker command failed')
     return proc.stdout.strip()
 
 
-def check_containers():
+def check_containers(profile="private"):
+    services = SERVICES + WORKER_SERVICES if profile == "manual" else SERVICES
     names = docker('ps', '--format', '{{.Names}}').splitlines()
-    for service in SERVICES:
+    for service in services:
         name = f'{PROJECT}-{service}-1'
         if name not in names:
             raise RuntimeError(f'{service} not running')
@@ -43,16 +52,38 @@ def check_containers():
                 raise RuntimeError('gateway port is not private loopback only')
         elif bindings:
             raise RuntimeError(f'{service} publishes a host port')
-    for name in names:
-        if name.startswith(f'{PROJECT}-') and name.rsplit('-', 1)[0].removeprefix(f'{PROJECT}-') in (
-            'tor', 'collector', 'queue_worker'
-        ):
-            raise RuntimeError('Tor/collection service is running')
+    expected = {f"{PROJECT}-{service}-1" for service in services}
+    unexpected = {name for name in names if name.startswith(f"{PROJECT}-")} - expected
+    if unexpected:
+        raise RuntimeError("unexpected OIP service running (scheduler or Tor/collection profile mismatch)")
+
+
+def check_gates(profile):
+    expected = "1" if profile == "manual" else "0"
+    script = ("from app.core.config import get_settings; "
+              "print(int(get_settings().manual_collection_enabled))")
+    if docker("exec", f"{PROJECT}-api-1", "python", "-c", script) != expected:
+        raise RuntimeError("API manual collection gate does not match the monitor profile")
+
+
+def worker_checks() -> list[str]:
+    output = docker("exec", f"{PROJECT}-queue_worker-1", "python", "-m", "app.collector.monitor")
+    statuses = output.splitlines()
+    if set(statuses) - set(WORKER_ISSUES) - {"COLLECTION_PAUSED"}:
+        raise RuntimeError("unrecognized worker diagnostic")
+    if "COLLECTION_PAUSED" in statuses:
+        print("INFO manual collection paused")
+    return [status for status in statuses if status in WORKER_ISSUES]
+
+
+class LocalOnlyRedirects(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
 
 
 def check_http():
     # Never honor environment HTTP_PROXY: all requests are loopback only.
-    opener = build_opener(ProxyHandler({}))
+    opener = build_opener(ProxyHandler({}), LocalOnlyRedirects())
     for path in ('/api/health', '/api/ready', '/'):
         try:
             with opener.open('http://127.0.0.1:8000' + path, timeout=5) as response:
@@ -84,33 +115,61 @@ def check_resources(disk_percent=85, min_mem_mib=350):
     return round(used_percent, 1), available // 1024
 
 
-def check_backup(max_age_hours=36, require=REQUIRE_BACKUP, stamp=STAMP):
-    if not require:
-        return 'NOT_ENABLED'
-    if not stamp.is_file() or stamp.is_symlink():
-        raise RuntimeError('verified offsite transfer marker missing')
-    age = time.time() - stamp.stat().st_mtime
-    if age < -300 or age > max_age_hours * 3600:
-        raise RuntimeError('offsite transfer is stale')
-    return 'RECENT'  # Transfer success only; never proves restoration.
+def report(failures: dict[str, str], state_path: Path | None) -> int:
+    previous = set()
+    if state_path is not None:
+        if state_path.exists():
+            previous = set(json.loads(state_path.read_text(encoding="utf-8")))
+        with tempfile.NamedTemporaryFile(mode="w", dir=state_path.parent, delete=False,
+                                         encoding="utf-8") as state:
+            json.dump(sorted(failures), state)
+        os.replace(state.name, state_path)
+    alert = False
+    for key, detail in failures.items():
+        confirmed = state_path is None or key in previous
+        alert |= confirmed
+        print(f'{"ALERT" if confirmed else "WARN"} {key}: {detail}', file=sys.stderr)
+    for key in sorted(previous - failures.keys()):
+        print(f"RECOVERED {key}")
+    return int(alert)
 
 
-def main():
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--profile", choices=("private", "manual"),
+                        default=os.environ.get("OIP_MONITOR_PROFILE", "private"))
+    parser.add_argument("--state-file", type=Path)
+    args = parser.parse_args()
+    if args.profile not in ("private", "manual"):
+        parser.error("invalid monitor profile")
     checks = [
-        ('containers/private ports', check_containers),
-        ('local health and authentication', check_http),
-        ('host disk/RAM', check_resources),
-        ('encrypted offsite transfer freshness', check_backup),
+        ("CONTAINERS", lambda: check_containers(args.profile)),
+        ("COLLECTION_GATES", lambda: check_gates(args.profile)),
+        ("LOCAL_HTTP", check_http),
+        ("HOST_RESOURCES", check_resources),
     ]
-    errors = 0
-    for label, fn in checks:
+    failures = {}
+    for key, check in checks:
         try:
-            result = fn()
-            print(f'PASS {label}: {result if result is not None else "OK"}')
-        except Exception as exc:  # Isolate checks; no subprocess stderr or credentials printed.
-            errors += 1
-            print(f'FAIL {label}: {exc}', file=sys.stderr)
-    return 1 if errors else 0
+            result = check()
+            print(f'PASS {key}: {result if result is not None else "OK"}')
+        except RuntimeError as exc:
+            failures[key] = str(exc)
+        except Exception:
+            failures[key] = "probe unavailable"
+    if args.profile == "manual":
+        try:
+            for code in worker_checks():
+                failures[code] = WORKER_ISSUES[code]
+            if not set(failures) & WORKER_ISSUES.keys():
+                print("PASS WORKER: OK")
+        except Exception:
+            failures["WORKER_CHECK_UNAVAILABLE"] = WORKER_ISSUES["WORKER_CHECK_UNAVAILABLE"]
+    try:
+        return report(failures, args.state_file)
+    except (OSError, ValueError, TypeError):
+        print("ALERT MONITOR_STATE: local state unavailable", file=sys.stderr)
+        return 1
 
 
 if __name__ == '__main__':

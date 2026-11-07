@@ -71,14 +71,14 @@ sudo bash scripts/check-network-isolation.sh
 
 Pour arrêter le traitement : `sudo docker compose stop queue_worker`. Pour traiter les jobs abandonnés par un worker arrêté brutalement, suivez la procédure documentée dans le [guide d'architecture](architecture-securite.md) : ne marquez pas des jobs actifs comme en échec.
 
-## Sauvegarde et restauration
+## Point de retour local avant migration
 
 ```bash
 sudo bash scripts/backup-db.sh                    # dump PostgreSQL dans backups/ (mode 0600)
-sudo bash scripts/check-backup-restore.sh          # restauration dans une base temporaire
+sudo bash scripts/check-backup-restore.sh backups/ARCHIVE.dump  # restauration dans une base temporaire
 ```
 
-**Les sauvegardes contiennent des métadonnées sensibles.** Chiffrez-les hors dépôt, limitez leur accès, définissez votre rétention et testez périodiquement la restauration. La commande `scripts/restore-db.sh ... --confirm-restore` remplace des données : elle n'est pas utilisée par les validations automatiques. Planifiez un arrêt complet des composants applicatifs et une sauvegarde indépendante avant toute restauration réelle, sur copie validée si possible.
+**Les sauvegardes contiennent des métadonnées sensibles.** Gardez le dump avant migration sur le même hôte, hors Git et avec un accès restreint. La commande `scripts/restore-db.sh ... --confirm-restore` remplace des données : elle n'est pas utilisée par les validations automatiques. Planifiez un arrêt complet des composants applicatifs et une sauvegarde indépendante avant toute restauration réelle, sur copie validée si possible.
 
 ## Rotation des identifiants avant publication
 

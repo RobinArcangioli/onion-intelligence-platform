@@ -39,7 +39,7 @@ M4-B est une **livraison de développement hors production** fondée sur M4-A. E
 | Rapports JSON | Revue spécifique des liens de provenance et de leur rétention | Aucun effacement |
 | Journal d'audit | Conservation séparée et contrôles d'intégrité ; jamais une suppression en cascade aveugle | Aucune purge |
 | Données minimisées | Aucun HTML/corps de page brut stocké ; voir guide M4-A pour limites des empreintes | Inchangé |
-| Sauvegardes et reprises | Décider durée de conservation, chiffrement, dépôt hors VPS, et test de restauration avant migrations en production | Reporté par le propriétaire |
+| Sauvegardes et reprises | Vérifier le dump local précédant une migration | Politique actuelle |
 
 Une future purge nécessitera une politique approuvée, une analyse exhaustive des références non relationnelles, des règles RGPD adaptées au traitement, une procédure de suppression testée, une preuve de restauration et des journaux d'audit. **Aucun mécanisme d'effacement n'est inclus ici.**
 

@@ -13,17 +13,20 @@ import sys
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from uuid import UUID
 
 from sqlalchemy import create_engine, func, or_, select, update
-from sqlalchemy.orm import Session, aliased, sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.collector.runner import collect_one, job_target
-from app.collector.policy import admission_lock, emergency_active, read_policy, running_full
+from app.collector.policy import admission_lock, eligible_jobs, emergency_active, read_policy, running_full
 from app.models import AuditLog, CrawlJob, OnionSource, SourceSchedule, ScheduleDecision
 
 LEASE_SECONDS = 180   # Must be greater than the fetch timeout (120 s).
 HEARTBEAT_SECONDS = 20
+WORKER_PULSE = Path('/tmp/oip-worker-pulse')
+WORKER_PULSE_MAX_AGE = 180
 
 
 def _now() -> datetime:
@@ -49,13 +52,7 @@ def claim_one(factory: sessionmaker[Session]) -> tuple[UUID, UUID, UUID] | None:
         if running_full(db, read_policy()):
             db.rollback()
             return None
-        active = aliased(CrawlJob)
-        source_busy = select(active.id).where(
-            active.source_id == CrawlJob.source_id, active.status.in_(("PENDING", "RUNNING")),
-        ).exists()
-        job = db.scalar(select(CrawlJob).where(or_(
-            CrawlJob.status == "PENDING", (CrawlJob.status == "WAITING") & ~source_busy,
-        ))
+        job = db.scalar(select(CrawlJob).where(eligible_jobs())
                         .order_by(CrawlJob.created_at, CrawlJob.id)
                         .with_for_update(skip_locked=True).limit(1))
         if job is None:
@@ -277,6 +274,7 @@ def main() -> int:
             print(f"reconciled_jobs={recover_stale(factory, minutes=args.stale_minutes)}")
             return 0
         while True:
+            WORKER_PULSE.touch()
             handled = asyncio.run(process_one(factory))
             if args.once:
                 break

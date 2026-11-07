@@ -40,7 +40,7 @@ npm ci --ignore-scripts
 npm run typecheck && npm run build && npm run test:unit
 ```
 
-Les tests avec PostgreSQL réel restent à exécuter dans un environnement isolé avant tout déploiement. **N'exécute pas `alembic upgrade head` sur `vps-ovh` sans sauvegarde hors site restaurable**. Ce paquet ne doit pas remplacer le code de production actuel ; les jalons M2/M3 non déployés restent des dépendances.
+Les tests avec PostgreSQL réel restent à exécuter dans un environnement isolé avant tout déploiement. **N'exécute pas `alembic upgrade head` sur `vps-ovh` sans dump local avant migration vérifié**. Ce paquet ne doit pas remplacer le code de production actuel ; les jalons M2/M3 non déployés restent des dépendances.
 
 ## Prochain travail (M4-B)
 

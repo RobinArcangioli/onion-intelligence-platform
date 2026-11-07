@@ -78,8 +78,7 @@ mais une base existante et ses secrets doivent être fournis pour tout test
 
 ## Tests à effectuer avant GO de déploiement
 
-1. Sauvegarde chiffrée hors VPS et restauration réellement testée pour la
-   version de la base à mettre à jour ; maintenance et rollback documentés.
+1. Dump local avant migration et restauration testée sur le même hôte ; maintenance et rollback documentés.
 2. `alembic upgrade 0010_governed_schedules` sur **PostgreSQL 17 de staging**
    avec enregistrements réels anonymisés ; tester le retour arrière **sur une
    copie uniquement** (`downgrade` supprime définitivement les planifications

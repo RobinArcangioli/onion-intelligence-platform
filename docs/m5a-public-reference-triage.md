@@ -69,8 +69,7 @@ Migration additive `0013_indicator_triage`, sur `threat_indicators` :
 
 Cette migration **ne doit pas être appliquée sur `vps-ovh` à cette étape**. Le VPS
 est resté avec M1-A et Tor désactivé ; aucune sauvegarde automatisée hors site
-n'est encore validée. Conditions avant activation : restauration hors VPS
-vérifiée et récente, répétition complète des migrations `0009` à `0013` sur une
+n'est encore validée. Conditions avant activation : point de retour local avant migration vérifié, répétition complète des migrations `0009` à `0013` sur une
 copie PostgreSQL 17 jetable, tests multi-workers M2, contrôle réseau OVH, puis
 GO distinct. Une restauration préalable couvre aussi le downgrade, qui fait
 perdre les champs de revue si utilisé ; ne pas l'exécuter en production.

@@ -1,0 +1,6 @@
+# Apply after compose.private.yaml when explicitly rehearsing the manual profile.
+# Service selection remains explicit: db api gateway tor queue_worker.
+services:
+  api:
+    environment:
+      OIP_MANUAL_COLLECTION_ENABLED: "true"

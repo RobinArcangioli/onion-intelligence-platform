@@ -32,6 +32,7 @@ services:
       OIP_DATABASE_URL: postgresql+psycopg://${OIP_DB_USER:?required}:${OIP_DB_PASSWORD:?required}@db:5432/${OIP_DB_NAME:?required}
       OIP_API_KEY: ${OIP_API_KEY:?Configurer OIP_API_KEY}
       OIP_LEGACY_API_KEY_ENABLED: ${OIP_LEGACY_API_KEY_ENABLED:-false}
+      OIP_MANUAL_COLLECTION_ENABLED: ${OIP_MANUAL_COLLECTION_ENABLED:-true}
     depends_on:
       db:
         condition: service_healthy

@@ -24,8 +24,7 @@ Collecte **manuelle permanente et supervisée**, scheduler désactivé. Un
 aux clients de consulter certaines informations sur les dernières veilles, sans
 accès aux fonctions ni aux informations sensibles. Le jeton API individuel reste la seule méthode d’authentification ; aucun
 mot de passe distinct ni écran de gestion de mot de passe n’est à développer.
-La connexion et les rôles actuels sont conservés. Les sauvegardes automatiques et une restauration
-vérifiée sont des prérequis d’exploitation durable.
+La connexion et les rôles actuels sont conservés. La seule sauvegarde prévue est le dump local avant migration.
 
 À la même adresse web, un petit lien **« accès visiteur »** ouvre la vue restreinte
 sans connexion. Les dernières veilles affichent publiquement **date, statut,

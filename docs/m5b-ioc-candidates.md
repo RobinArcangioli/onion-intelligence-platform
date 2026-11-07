@@ -8,7 +8,7 @@
 > visiteur limitée ; ce modèle n’est pas encore implémenté. Ce guide
 > n’autorise aucune action OVH.
 
-**Statut : développement hors production.** Cette fonctionnalité ne doit pas être activée sur `vps-ovh` tant que la migration `0014_ioc_candidates`, la reprise PostgreSQL 17 et une restauration hors site ne sont pas validées. Les sauvegardes automatisées ont été reportées par le propriétaire ; aucune migration de production ne doit être tentée.
+**Statut : développement hors production.** Cette fonctionnalité ne doit pas être activée sur `vps-ovh` tant que la migration `0014_ioc_candidates`, la reprise PostgreSQL 17 et le point de retour local avant migration ne sont pas validées. Les sauvegardes automatisées ont été reportées par le propriétaire ; aucune migration de production ne doit être tentée.
 
 ## Périmètre et minimisation
 
@@ -51,5 +51,5 @@ La migration SQLite est rejouée sur une base de test jetable. La recette Postgr
 - Revenir au code M5-A sans rétrograder PostgreSQL si `0014` a été appliquée : le code précédent ne connaît pas `ioc_candidates`, mais ne la supprime pas.
 - La commande Alembic `downgrade 0013_indicator_triage` **supprime définitivement les candidats et leur revue** : à réserver à une base jetable après confirmation explicite.
 - Pas de `docker compose down -v`, pas de nettoyage automatique des données, pas de relance non autorisée de Tor/worker ou du scheduler.
-- Recette nécessaire : PostgreSQL 17 réel, contraintes uniques sous concurrence, contention des index, RBAC par jetons nominatifs, contrôle des journaux, reprise hors site et plan d'annulation des migrations.
+- Recette nécessaire : PostgreSQL 17 réel, contraintes uniques sous concurrence, contention des index, RBAC par jetons nominatifs, contrôle des journaux, reprise depuis le dump local et plan d'annulation des migrations.
 - Les valeurs extraites sont des *mentions documentaires* ; les sources Onion restent sur liste blanche et aucune valeur découverte n'est transformée en cible de collecte.

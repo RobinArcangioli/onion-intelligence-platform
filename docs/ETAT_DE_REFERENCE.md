@@ -261,8 +261,26 @@ n’a produit aucune observation.
 
 Le dump synthétique a été chiffré avec `age` et restauré dans une base
 PostgreSQL 17 vierge. Les comptes des URL, jobs de veille, observations et
-publications sont identiques avant et après la restauration. La destination
-hors hôte, la politique de sauvegarde et la planification restent à valider.
+publications sont identiques avant et après la restauration. Cet essai est historique. La politique actuelle limite les dumps à la
+sauvegarde locale précédant une migration.
+
+### Supervision locale du worker
+
+Les profils privé et manuel ont passé le prévol Compose avec des paramètres
+de recette. Le profil manuel contrôle le worker, le proxy SOCKS local, les
+baux expirés et les jobs éligibles qui restent en attente. Le contrôle SOCKS
+ne comporte aucune destination. Les erreurs d’un site restent dans les
+résultats de la veille.
+
+Sur l’instance locale, la sonde a signalé l’arrêt du worker, puis a validé
+son retour ainsi que l’API, l’authentification et le proxy Tor local.
+Elle a aussi détecté le dépassement du seuil disque de 85 % pendant
+la recette. Les unités systemd journalisent localement. La recette n’a
+pas activé le timer ni utilisé une destination distante.
+
+Les outils de transfert de sauvegarde et les unités correspondantes ont
+été retirés. Les outils restants couvrent le dump local avant migration
+et la vérification d’une archive locale existante.
 
 ## 3. Architecture présente
 

@@ -51,7 +51,7 @@ Un test manuel local peut lancer une instance Nginx jetable sur un port **127.0.
 - Faire confirmer qu'aucun accès légitime ne dépend d'un nom d'hôte autre que `localhost` ou `127.0.0.1`.
 - Exécuter la CI sur une copie autorisée du dépôt ; l'audit historique de publication publique reste distinct et bloquant selon la politique en vigueur.
 - Vérifier le comportement du navigateur via **tunnel SSH**, la disponibilité API, les refus 401/403, le fonctionnement des exports et les headers de réponse.
-- Disposer d'une sauvegarde/restauration hors VPS **vérifiée avant toute opération ultérieure risquant les données** ; pour M7-A, le changement ne touche pas le volume Postgres, mais un rollback applicatif testé reste obligatoire.
+- Disposer d'une sauvegarde locale **vérifiée avant toute migration** ; pour M7-A, le changement ne touche pas le volume Postgres, mais un rollback applicatif testé reste obligatoire.
 - Documenter le retour arrière : préserver le Compose et les images précédentes, redéployer uniquement Nginx et l'API à partir d'artefacts vérifiés ; ne pas exécuter Alembic ni supprimer un volume.
 
 ## Dette de sécurité ouverte — hors M7-A

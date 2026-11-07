@@ -2,14 +2,15 @@
 Description=OIP local health, resource and private-network probe
 After=docker.service
 Wants=docker.service
-OnFailure=oip-alert@%n.service
 
 [Service]
 Type=oneshot
 User=root
-Environment=OIP_MONITOR_REQUIRE_BACKUP=0
+Environment=OIP_MONITOR_PROFILE=private
 EnvironmentFile=-/etc/oip/monitor.env
-ExecStart=/usr/bin/python3 /opt/oip/onion-intelligence-platform/deploy/ovh/monitor.py
+ExecStart=/usr/bin/python3 /opt/oip/onion-intelligence-platform/deploy/ovh/monitor.py --state-file /var/lib/oip-monitor/health.json
+StateDirectory=oip-monitor
+StateDirectoryMode=0700
 TimeoutStartSec=60
 NoNewPrivileges=yes
 ProtectSystem=strict

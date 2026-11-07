@@ -14,8 +14,7 @@ signifie ni collecte récurrente autonome ni exploration automatique de liens.
 Une veille déclenchée traite automatiquement les URL enregistrées. Le scheduler
 reste désactivé. Un **administrateur conserve la connexion actuelle par jeton API individuel** ; un
 **visiteur accède à une vitrine des dernières veilles**, sans accès aux fonctions
-ni aux informations sensibles. Les sauvegardes automatiques et leur restauration
-deviennent des prérequis d’exploitation durable.
+ni aux informations sensibles. Un dump local protégé précède les migrations sur une base existante.
 
 Ces choix viennent des réponses explicites du propriétaire du 5 novembre 2026.
 L’ouverture ultérieure d’un tunnel SSH a été autorisée séparément pour consulter
@@ -33,7 +32,7 @@ sont les incréments suivants, avec revue de leur périmètre ci-dessous.
 | D03 | Deux références centrales : état et roadmap | Acté, demande initiale | README et passation y renvoient ; guides techniques subordonnés pour le statut |
 | D04 | Collecte manuelle permanente supervisée prioritaire | Acté, réponse du propriétaire 2026-11-05 | Worker disponible en continu, sources explicitement autorisées, concurrence bornée, stop ; scheduler désactivé |
 | D05 | Retirer toute authentification applicative du MVP | REMPLACÉ par D10, précision ultérieure du propriétaire le 2026-11-05 | Ne plus utiliser cette première formulation comme cible ; l’administration reste authentifiée |
-| D06 | Remettre les sauvegardes automatiques dans les prérequis d'exploitation durable | Acté, réponse du propriétaire 2026-11-05 | Conception, restauration réelle et supervision avant exploitation durable ; pas d'activation distante implicite |
+| D06 | Conserver uniquement des dumps locaux avant migration | Acté, dernière décision du propriétaire | Retirer les sauvegardes périodiques et hors hôte du périmètre |
 | D07 | Aucun déploiement, migration ou activation de collecte OVH pendant le développement local | Acté, passation ; tunnel en lecture autorisé ultérieurement par le propriétaire | Tunnel vers l’existant seulement ; toute intervention modifiant OVH nécessite une instruction explicite distincte |
 | D08 | Sources autorisées, minimisation, aucune exploration automatique de liens, pas de retry automatique | Contrats existants maintenus | Simplifier les accès ne retire pas les contrôles de sources, limites et transitions |
 | D09 | Conserver le profil réseau privé existant pendant la stabilisation | Maintien de l’existant ; cible web commune précisée dans D12 | La conception de la vitrine ne modifie aucun port ni accès distant pendant cette étape |
@@ -257,8 +256,11 @@ n'est pas une preuve de réalisation de cette tâche.
 
 ### MVP-03 — Supervision compatible avec un worker permanent (P1, M)
 
-**État** — La progression d’une veille et l’échéance de reprise sont
-visibles dans OIP. Le contrôle des services et le runbook restent à qualifier.
+**État** — La progression et l’échéance de reprise sont visibles dans OIP.
+Les profils privé et manuel ont passé le prévol Compose de recette. Sur
+l’instance locale, la sonde a détecté l’arrêt du worker, puis confirmé son
+retour. Les unités périodiques sont préparées. Leur activation sur l’hôte
+cible reste à valider séparément.
 
 Dépend de MVP-01/02. Introduire un profil explicite distinguant noyau privé sans
 collecte et collecte manuelle supervisée. Conserver le refus de Tor/worker dans
@@ -272,25 +274,6 @@ doit être adapté à ce profil de façon contrôlée, pas neutralisé globaleme
 manuel sain avec worker attendu et défaillant s'il manque ; scheduler actif ou
 service inattendu signalé ; alerte sur incident simulé, sans URL/contenu/secret.
 Runbook d'arrêt, diagnostic, réconciliation et reprise testé localement.
-
-### MVP-04 — Sauvegardes automatiques et reprise (P1, M)
-
-**État** — Dump chiffré et restauration synthétique sur base vierge vérifiés
-avec `0020_collection_batches`. Le transfert hors hôte et la planification
-restent à qualifier.
-
-Conception parallélisable après S05 ; validation obligatoire avant exploitation
-durable. Définir avec le propriétaire la destination hors hôte, le chiffrement,
-la détention des clés, la fréquence, la rétention, le RPO et le RTO. Réutiliser
-et vérifier `backup-offsite.sh`, `verify-restore.sh`, leurs gardes et unités
-systemd au lieu de présumer qu'ils constituent un service déjà opérationnel.
-Aucun accès à des secrets ou activation réelle par simple validation documentaire.
-
-**Acceptation :** scénario synthétique complet dump → chiffrement → transfert de
-recette → restauration sur base vierge → intégrité applicative ; panne dump ou
-transfert ne produit pas de faux marqueur de succès ; retard déclenche l'alerte ;
-RPO/RTO mesurés et procédure de récupération de clé validée. Avant exploitation
-réelle, restauration effective autorisée et preuve expurgée distincte du test local.
 
 ### MVP-05 — Recette navigateur et qualité d'extraction (P1, M)
 
@@ -332,14 +315,13 @@ aucun déploiement automatique ni secret d'exploitation dans la CI.
 
 | ID | Dépendances | Travail et critères d'acceptation |
 |---|---|---|
-| OPS-01 / P1 / M | MVP-01 à 06 et MVP-01V | Plan staging/promote/rollback sur schéma cible `0018` (base historique `0017`), restauration préalable, vérification de compatibilité applicative ; distinguer rollback image et restauration DB ; ne pas utiliser un downgrade destructif comme sauvegarde |
+| OPS-01 / P1 / M | MVP-01/02/03/05/06 et MVP-01V | Plan staging/promote/rollback sur schéma cible `0018` (base historique `0017`), dump local avant migration, vérification de compatibilité applicative ; distinguer rollback image et restauration DB ; ne pas utiliser un downgrade destructif comme sauvegarde |
 | OPS-02 / P1 / M | OPS-01 + instruction d'accès distante explicite | Inventaire actuel OVH expurgé, vérification du périmètre de l'autorisation fournisseur déclaré historiquement, revue IPv4/IPv6/DNS/SOCKS/ports, tests stop/absence de fallback sur l'hôte autorisé ; résultats datés, aucune revendication d'anonymat absolu |
-| OPS-03 / P1 / S | OPS-02 + sauvegarde/restauration validées + GO explicite | Pilote de durée convenue, un worker initialement, concurrence réglée et sources de démonstration autorisées ; scheduler inactif ; preuves des transitions, arrêt et reprise ; seuils et incidents suivis |
+| OPS-03 / P1 / S | OPS-02 + point de retour local vérifié pour la migration + GO explicite | Pilote de durée convenue, un worker initialement, concurrence réglée et sources de démonstration autorisées ; scheduler inactif ; preuves des transitions, arrêt et reprise ; seuils et incidents suivis |
 | OPS-04 / P1 / S | OPS-03 | Recette opérateur, limites connues, SLO modestes mesurés, coûts et runbooks ; deux références actualisées avec SHA/run/date ; validation MVP par le propriétaire |
 
 L'ordre critique est : S01–S05 → MVP-01/02 → MVP-01V/03/05 → OPS-01/02/03/04.
-MVP-04 (reprise) et MVP-06 (reproductibilité) avancent en parallèle de conception,
-mais doivent être validés avant OPS-01. Aucune étape distante n'est déclenchée par
+MVP-06 (reproductibilité) doit être validé avant OPS-01. Aucune étape distante n'est déclenchée par
 ce document. Un budget de durée et de ressources du pilote sera convenu avant OPS-03.
 
 ## 7. Travaux conditionnels, hors chemin critique MVP
@@ -385,5 +367,5 @@ visiteur est confirmée dans MVP-01H.
 La recette manuelle synthétique est disponible via `scripts/serve-visitor-demo.py`
 sur le port 8000 lorsque la passerelle locale est arrêtée. Pour la recette réelle
 des catalogues, la vérification suivante de **MVP-01H** porte sur la collecte
-ordinaire. Les tâches MVP-02/03/04 couvrent en parallèle la qualification
+ordinaire. Les tâches MVP-02/03 couvrent en parallèle la qualification
 du worker et de l’exploitation.

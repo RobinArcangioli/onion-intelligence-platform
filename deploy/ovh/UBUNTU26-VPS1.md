@@ -82,7 +82,7 @@ bash deploy/ovh/deploy.sh status
 bash deploy/ovh/deploy.sh smoke
 ```
 
-Si `.env` existe déjà, le générateur refuse de l'écraser. Il n'affiche pas les secrets. Les secrets propres à ce nouveau VPS ne doivent pas être transférés depuis l'ancien PC ni partagés. **Après un premier volume DB créé**, la commande `deploy` exige une confirmation de sauvegarde/restauration via `OIP_BACKUP_VERIFIED=yes` ; ne pas forcer ce drapeau sans avoir réellement vérifié une restauration.
+Si `.env` existe déjà, le générateur refuse de l'écraser. Il n'affiche pas les secrets. Les secrets propres à ce nouveau VPS ne doivent pas être transférés depuis l'ancien PC ni partagés. **Après un premier volume DB créé**, la commande `deploy` exige la vérification du dump local avant migration via `OIP_LOCAL_MIGRATION_BACKUP_VERIFIED=yes` ; ne pas forcer ce drapeau sans avoir réellement vérifié l’archive locale.
 
 Vérifier les ports sur l'hôte :
 
@@ -115,8 +115,8 @@ Dans le navigateur du **PC** : `http://127.0.0.1:8000` ; l'authentification nomi
 
 ## 6. Sauvegarde, décision GO et limites
 
-Préparer une machine de sauvegarde distincte (pas le même VPS), un destinataire public `age` et garder la clé privée age hors VPS. Suivre `deploy/ovh/README.md` pour `backup-offsite.sh`, puis **tester une restauration complète** depuis l'archive chiffrée dans une base isolée. Sans cette répétition, l'instance est **un pilote non qualifié**, pas un service de production.
+Avant une migration, conserver un dump PostgreSQL protégé sur le même hôte et vérifier sa lecture.
 
-GO pilote privé uniquement après : SSH clé et firewall IPv4/IPv6 validés ; `check`, `status` et `smoke` PASS ; auth nominative ; refus d'accès anonyme ; aucun service Tor/worker ; `ss` confirmant 8000 loopback ; migration Alembic vérifiée ; sauvegarde chiffrée hors VPS et restauration réelle. Tor nécessite une décision contractuelle écrite OVH et une recette réseau dédiée : ne pas lancer `--profile tor`.
+GO pilote privé uniquement après : SSH clé et firewall IPv4/IPv6 validés ; `check`, `status` et `smoke` PASS ; auth nominative ; refus d'accès anonyme ; aucun service Tor/worker ; `ss` confirmant 8000 loopback ; migration Alembic vérifiée ; dump local vérifié avant migration. Tor nécessite une décision contractuelle écrite OVH et une recette réseau dédiée : ne pas lancer `--profile tor`.
 
 **VPS-1 (4 Go/40 Go) :** surveiller `free -h`, `df -h`, `sudo docker system df` ; conserver une marge disque pour builds, journaux, Docker et PostgreSQL. Éviter les purges avec `--volumes` et toute commande de suppression de la base.

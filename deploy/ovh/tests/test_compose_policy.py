@@ -87,5 +87,27 @@ class OvhComposePolicyTest(unittest.TestCase):
         checker.validate(obj)
 
 
+    def test_manual_profile_preserves_tor_isolation_and_no_scheduler(self):
+        obj = sample()
+        obj["services"]["api"]["environment"]["OIP_MANUAL_COLLECTION_ENABLED"] = "true"
+        obj["networks"]["tor_proxy"] = {"internal": True}
+        obj["services"]["tor"] = {"profiles": ["tor"], "networks": {"tor_proxy": None, "tor_egress": None}}
+        obj["services"]["queue_worker"] = {
+            "profiles": ["tor"], "networks": {"private": None, "tor_proxy": None},
+            "environment": {"OIP_TOR_COLLECTION_ENABLED": "true"}, "read_only": True, "cap_drop": ["ALL"],
+        }
+        checker.validate(obj, "manual")
+        with self.assertRaises(ValueError):
+            checker.validate(obj, "private")
+        for unsafe_service in ("scheduler",):
+            invalid = copy.deepcopy(obj)
+            invalid["services"][unsafe_service] = {}
+            with self.assertRaisesRegex(ValueError, "unreviewed"):
+                checker.validate(invalid, "manual")
+        obj["networks"]["tor_proxy"]["internal"] = False
+        with self.assertRaisesRegex(ValueError, "proxy network"):
+            checker.validate(obj, "manual")
+
+
 if __name__ == '__main__':
     unittest.main()

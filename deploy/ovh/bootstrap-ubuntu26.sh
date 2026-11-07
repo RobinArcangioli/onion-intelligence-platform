@@ -22,7 +22,7 @@ done
 printf 'Preparing Ubuntu 26.04; SSH settings and firewall will NOT be changed.\n'
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y ca-certificates curl python3 unzip git age openssh-client gnupg
+apt-get install -y ca-certificates curl python3 unzip git openssh-client gnupg
 
 # Follow the official Docker CE apt repository procedure (not get.docker.com).
 install -d -m 0755 /etc/apt/keyrings

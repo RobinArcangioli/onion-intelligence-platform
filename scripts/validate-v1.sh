@@ -22,8 +22,10 @@ bash scripts/smoke-local.sh
 printf '[5/8] Real Tor/collector network boundary; no collection\n'
 docker compose --profile tor up --build -d tor
 bash scripts/check-network-isolation.sh
-printf '[6/8] PostgreSQL restore rehearsal into disposable database\n'
-bash scripts/check-backup-restore.sh
+printf '[6/8] Local migration archive check (when supplied)\n'
+if [[ -n "${OIP_PRE_MIGRATION_DUMP:-}" ]]; then
+  bash scripts/check-backup-restore.sh "$OIP_PRE_MIGRATION_DUMP"
+fi
 printf '[7/8] Release packaged file manifest\n'
 python3 scripts/verify-manifest.py
 if [[ "$mode" == '--core' ]]; then
