@@ -301,20 +301,25 @@ aucune découverte suivie automatiquement ; limitations d'extraction documentée
 
 ### MVP-06 — Reproductibilité et contrôles de livraison (P1, M)
 
-Commencer après S04, terminer avant promotion. Décider d'une version Node commune
-CI/Docker (24 en CI, 22 dans l'image actuelle) ; figer les dépendances Python
-transitives avec un mécanisme de verrouillage reproductible et éprouver le build
-depuis zéro. Fixer les images/digests retenus et documenter leur mise à jour.
-Ajouter audits de dépendances et scan de secrets appropriés, sans appeler une image
-API réelle d'exploitation pour collecter son inventaire de paquets.
+La version de référence est Node 24.22.2 et Python 3.12.16 en CI et dans Docker.
+`npm ci` utilise le verrou frontend. Python installe des roues vérifiées par
+empreinte avec des verrous distincts pour la construction, l’exécution et
+les tests. Les images sont fixées par digest et les paquets Tor proviennent
+d’un instantané Debian daté et signé.
 
-**Acceptation :** installation propre reproductible, backend/frontend et images
-construits sur la même base définie, inventaire des composants et scans datés ;
-échec bloquant pour vulnérabilités dépassant le seuil convenu ou secret reconnu ;
-exécuter `bash -n` individuellement sur chaque script (la commande CI actuelle
-avec un glob ne vérifiait que le premier script, les suivants devenant arguments ;
-corrigé dans le workflow de stabilisation) ;
-aucun déploiement automatique ni secret d'exploitation dans la CI.
+La recette compare les inventaires de deux reconstructions propres sur la
+même plateforme. La CI contrôle les fichiers indexés et le manifeste, exécute
+`bash -n` séparément pour chaque script et analyse les verrous et les images
+candidates. Un secret reconnu, un rapport de scan incomplet ou un avis de
+sévérité haute ou critique fait échouer le contrôle. Les avis sans sévérité
+sont signalés pour revue avant promotion. L’inventaire provient des images
+candidates. La CI ne déploie aucun service et n’utilise aucun secret d’exploitation.
+
+Le contrôle est en place. La promotion reste bloquée par les avis sur les images
+relevés lors de la [qualification locale du 7 novembre 2026](ETAT_DE_REFERENCE.md#qualification-de-livraison-mvp-06).
+Avant OPS-01, réévaluer les composants concernés à partir des avis éditeurs,
+actualiser les digests et l’instantané si des versions corrigées sont disponibles,
+puis rejouer les deux reconstructions, le scan et la recette.
 
 ## 6. Passage ultérieur vers l'exploitation durable
 

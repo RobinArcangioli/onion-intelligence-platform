@@ -2,7 +2,7 @@ name: onion-intelligence-platform
 
 services:
   db:
-    image: postgres:17-alpine
+    image: postgres:17-alpine@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac
     environment:
       POSTGRES_USER: ${OIP_DB_USER:?Configurer OIP_DB_USER}
       POSTGRES_DB: ${OIP_DB_NAME:?Configurer OIP_DB_NAME}

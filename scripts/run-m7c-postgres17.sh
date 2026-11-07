@@ -80,7 +80,7 @@ cid="$(docker run --detach --rm --name "$name" \
   --security-opt no-new-privileges --cap-drop ALL \
   -e POSTGRES_USER=oip_test -e POSTGRES_DB=oip_m7c_test \
   -e POSTGRES_PASSWORD="$password" \
-  postgres:17-alpine)"
+  postgres:17-alpine@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac)"
 
 ready=0
 for ((i=0; i<60; i++)); do

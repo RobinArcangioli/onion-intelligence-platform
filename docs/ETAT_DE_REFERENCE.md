@@ -305,6 +305,46 @@ vides et la limite de texte. Un exemple de démenti peut encore déclencher
 un signal de fuite, qui reste une mention non vérifiée. Le parseur ne calcule
 pas la visibilité après exécution de JavaScript ou application de CSS.
 
+### Qualification de livraison MVP-06
+
+Au 7 novembre 2026, les recettes CI et Docker utilisent Python 3.12.16 et
+Node 24.22.2. Les verrous Python couvrent les outils de construction, les
+dépendances d’exécution et la suite de test. Les installations refusent les
+roues dont l’empreinte diffère du verrou. Le frontend utilise `npm ci`.
+Les images de base et PostgreSQL 17 sont référencés par digest. L’image Tor
+utilise les index Debian signés arrêtés au `20261107T000000Z` et installe
+`tor=0.4.9.11-0+deb12u1` et `ca-certificates=20250419~deb12u2`.
+
+Le contrôle Trivy 0.76.2 examine les verrous et les images candidates hors
+réseau après téléchargement de sa base d’avis publique. L’inventaire est
+établi à partir des images candidates sans démarrer leurs services.
+Le seuil est appliqué aux dépendances et aux paquets système, y compris
+ceux des étapes de construction et de test. Le contrôle d’index traite
+les secrets reconnus et ne journalise que leur catégorie et leur chemin.
+
+Deux reconstructions sans cache sur Linux amd64 donnent le même inventaire
+de versions pour le backend, ses tests, le build frontend, la passerelle,
+Tor et PostgreSQL 17.11. Les deux images de test backend ont chacune réussi
+392 tests hors réseau. Les huit tests PostgreSQL exclus de ce passage ont
+réussi séparément sur des bases jetables. Les 17 tests frontend et les six
+scénarios Chromium ont réussi sur une installation neuve avec ces verrous.
+
+Le scan du 7 novembre 2026 à 14 h 24 UTC utilise la base Trivy mise à jour
+à 12 h 52 UTC. Les verrous couvrent 123 entrées npm et 70 entrées Python
+réparties sur trois inventaires, avec un seul avis de sévérité moyenne.
+Les six images totalisent, après déduplication par avis, paquet et version,
+152 résultats bloquants (dont quatre de sévérité critique) et 24 résultats
+sans sévérité à revoir. Les résultats critiques portent sur la bibliothèque
+Brotli de la passerelle, zlib dans la base Debian de Tor et la bibliothèque
+standard Go de binaires livrés dans les images de construction frontend et
+PostgreSQL. Ce sont des résultats de scanner à confronter aux avis éditeurs.
+Pour le cas zlib de Tor, Debian indique que le code MiniZip concerné n’est
+pas construit par le paquet Bookworm. Pour un cas `util-linux`, Debian
+indique encore les branches Bookworm et Trixie comme vulnérables. Le seuil
+reste appliqué à tous les résultats et la promotion est bloquée.
+[Suivi Debian de zlib](https://security-tracker.debian.org/tracker/CVE-2023-45853) ·
+[Suivi Debian de util-linux](https://security-tracker.debian.org/tracker/CVE-2026-78410)
+
 ## 3. Architecture présente
 
 Python 3.12, FastAPI, SQLAlchemy/Alembic, PostgreSQL 17 ; interface React 19 /
@@ -506,7 +546,7 @@ des services, du réseau ou des sauvegardes historiques.
 | Retry, purge ou notifications présentés comme étapes implicites | Aucun ajout automatique : pas de retry, purge absente, brouillons seulement |
 | Manifeste du paquet confondu avec arbre stabilisé | Original conservé, manifeste courant distinct par sa provenance |
 | Guide de reprise après crash antérieur aux baux | Ne pas suivre les anciennes commandes ; contrat M2-B/C et validation de runbook restant nécessaires |
-| Versions et builds | Python sans lock transitif ; Node 24 en CI / 22 en Docker ; images mobiles : dette de reproductibilité |
+| Versions et builds | Verrous transitifs, versions CI/Docker alignées et digests fixés. Avis système bloquants à traiter avant promotion. |
 | Auditeur historique recommandant une nouvelle racine | Conseil générique contraire à la stratégie acceptée ; conserver historique et références, ne pas l'appliquer |
 
 Les migrations, tests historiques, scripts utiles, branches, tags et archives de

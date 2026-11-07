@@ -1,28 +1,48 @@
 #!/usr/bin/env bash
-# Explicit ONLINE operation: queries public npm and PyPI vulnerability services.
-# Only package names + versions are sent. No onion sources, credentials or observations.
+# Refresh the public advisory database, then scan only locks and explicitly named local images.
 set -Eeuo pipefail
-cd "$(dirname "$0")/.."
-command -v npm >/dev/null || { echo 'BLOCKED: npm is required on host' >&2; exit 2; }
-command -v docker >/dev/null || { echo 'BLOCKED: Docker required' >&2; exit 2; }
-if [[ ! -s frontend/package-lock.json ]]; then
-  echo 'BLOCKED: frontend/package-lock.json missing. Generate it on a trusted machine: (cd frontend && npm install --package-lock-only --ignore-scripts)' >&2
-  exit 2
-fi
-printf 'Checking npm production and build dependencies (public registry)...\n'
-npm --prefix frontend audit --audit-level=high --no-fund
-printf 'Checking versions actually installed in the API image (public PyPI advisory source)...\n'
-tmpdir="$(mktemp -d)"
 umask 077
-trap 'rm -rf -- "$tmpdir"' EXIT
-# Capture environment from the deployed API rather than guessing versions from loose ranges.
-docker compose exec -T api python -m pip freeze \
-  | grep -v -i '^onion-intelligence-platform-backend==' > "$tmpdir/installed.txt"
-if [[ ! -s "$tmpdir/installed.txt" ]]; then
-  echo 'BLOCKED: empty Python dependency inventory' >&2
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+if (( $# < 1 )); then
+  echo 'Usage: bash scripts/audit-dependencies.sh REPORT_DIR [LOCAL_IMAGE ...]' >&2
   exit 2
 fi
-python3 -m venv "$tmpdir/venv"
-"$tmpdir/venv/bin/python" -m pip install --disable-pip-version-check --quiet 'pip-audit>=2.7,<4'
-"$tmpdir/venv/bin/python" -m pip_audit -r "$tmpdir/installed.txt" --no-deps --disable-pip
-printf 'PASS: npm and Python vulnerability audits (advisory data at time of run)\n'
+mkdir -p -- "$1"
+reports="$(realpath -- "$1")"
+shift
+scanner='aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb'
+scratch="$(mktemp -d)"
+trap 'rm -rf -- "$scratch"' EXIT
+cache="${OIP_TRIVY_CACHE_DIR:-$scratch/cache}"
+mkdir -p -- "$cache"
+cache="$(realpath -- "$cache")"
+cache_mount=(--mount "type=bind,src=$cache,dst=/cache")
+
+for scope in build runtime test; do
+  mkdir -p "$scratch/locks/$scope"
+  # Expand the locked inventory into the input format Trivy recognizes.
+  sed -nE 's/^([A-Za-z0-9_.-]+)(\[[^]]+\])?(==[^ ;\\]+).*$/\1\3/p' \
+    "backend/requirements-$scope.lock" > "$scratch/locks/$scope/requirements.txt"
+  test -s "$scratch/locks/$scope/requirements.txt"
+done
+cp frontend/package.json frontend/package-lock.json "$scratch/locks/"
+docker run --rm "${cache_mount[@]}" "$scanner" image --cache-dir /cache --download-db-only
+cp "$cache/db/metadata.json" "$reports/advisory-db.json"
+
+scan() {
+  docker run --rm --network none "${cache_mount[@]}" \
+    --mount "type=bind,src=$scratch,dst=/input,readonly" "$scanner" "$@" \
+    --cache-dir /cache --skip-db-update --skip-java-db-update --offline-scan \
+    --scanners vuln --format json
+}
+scan fs --include-dev-deps /input/locks > "$reports/locks.json"
+scan_reports=("$reports/locks.json")
+for image in "$@"; do
+  docker image inspect "$image" >/dev/null
+  name="${image//[^a-zA-Z0-9_.-]/_}"
+  docker image save -o "$scratch/image.tar" "$image"
+  scan image --input /input/image.tar > "$reports/$name.json"
+  scan_reports+=("$reports/$name.json")
+done
+
+python3 scripts/check-delivery-scan.py "$scratch/locks" "${scan_reports[@]}" | tee "$reports/gate.txt"

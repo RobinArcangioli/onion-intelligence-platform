@@ -26,6 +26,9 @@ dev = [
   "httpx>=0.27,<1",
 ]
 
+[dependency-groups]
+build = ["setuptools>=70", "wheel"]
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["app*"]

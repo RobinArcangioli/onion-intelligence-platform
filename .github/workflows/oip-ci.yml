@@ -24,11 +24,9 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
-      - name: Audit staged source tree (not historical publication approval)
-        run: python scripts/ci-index-audit.py
+          python-version: '3.12.16'
       - name: Install test dependencies
-        run: python -m pip install -e './backend[dev]'
+        run: bash scripts/install-locked-backend.sh
       - name: Backend unit tests (offline Onion)
         run: python -m pytest -q -p no:cacheprovider backend/tests
       - name: Install nginx for syntax validation of private ingress
@@ -58,7 +56,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: '24.22.2'
           package-manager-cache: false
       - name: Locked install
         run: npm ci --no-audit --no-fund
@@ -68,13 +66,40 @@ jobs:
         run: npm run build
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.12.16'
       - name: Install synthetic browser server dependencies
-        run: python -m pip install -e '../backend[dev]'
+        run: bash ../scripts/install-locked-backend.sh
       - name: Install Chromium for synthetic visitor acceptance
         run: npx playwright install --with-deps chromium
       - name: MVP browser acceptance (isolated synthetic data)
         run: npm run test:e2e
+
+  delivery:
+    name: Locked delivery and security gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12.16'
+      - name: Audit staged source tree (not historical publication approval)
+        run: python scripts/ci-index-audit.py
+      - name: Verify packaged source manifest
+        run: python scripts/verify-manifest.py
+      - name: Build clean candidate images
+        run: bash scripts/build-delivery-images.sh oip-ci-candidate
+      - name: Record installed component inventory
+        run: bash scripts/delivery-inventory.sh oip-ci-candidate
+      - name: Audit dependency locks and candidate images
+        run: |
+          reports="$RUNNER_TEMP/oip-delivery-reports"
+          trap 'if [[ -s "$reports/gate.txt" ]]; then cat "$reports/gate.txt" >> "$GITHUB_STEP_SUMMARY"; fi' EXIT
+          bash scripts/audit-dependencies.sh "$reports" \
+            oip-ci-candidate:backend oip-ci-candidate:backend-test oip-ci-candidate:frontend-build \
+            oip-ci-candidate:gateway oip-ci-candidate:tor oip-ci-candidate:postgres
 
   postgres17-m4b:
     name: M4-B PostgreSQL 17 isolated rehearsal
@@ -84,7 +109,7 @@ jobs:
       contents: read
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:17-alpine@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac
         env:
           POSTGRES_USER: oip_test
           POSTGRES_PASSWORD: local_ci_fixture_only
@@ -102,9 +127,9 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.12.16'
       - name: Install backend dependencies
-        run: python -m pip install -e './backend[dev]'
+        run: bash scripts/install-locked-backend.sh
       - name: M4-B PostgreSQL migration, FTS and EXPLAIN
         env:
           PG_TEST_PASSWORD: local_ci_fixture_only
@@ -121,7 +146,7 @@ jobs:
       contents: read
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:17-alpine@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac
         env:
           POSTGRES_USER: oip_test
           POSTGRES_PASSWORD: local_ci_fixture_only
@@ -139,9 +164,9 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.12.16'
       - name: Install backend dependencies
-        run: python -m pip install -e './backend[dev]'
+        run: bash scripts/install-locked-backend.sh
       - name: Rehearse complete migrations and concurrent identity/case writes
         env:
           PG_TEST_PASSWORD: local_ci_fixture_only

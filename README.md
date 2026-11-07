@@ -164,5 +164,31 @@ Le contrôle d'index lit les octets indexés, pas les modifications non indexée
 Le manifeste racine décrit la copie stabilisée ; le [manifeste M7-C1.1 original](docs/handoff/M7C11_SOURCE_SHA256SUMS.txt)
 est conservé séparément et dans le commit de référence.
 
+Pour qualifier les images candidates sans lancer les services, exécuter
+les commandes ci-dessous. Les builds téléchargent leurs composants publics.
+Le scan télécharge la base d’avis Trivy puis s’exécute hors réseau. Les
+rapports sont conservés dans le dossier temporaire affiché.
+
+```bash
+reports="$(mktemp -d)"
+printf '%s\n' "$reports"
+candidate="oip-qualification-${reports##*.}"
+bash scripts/build-delivery-images.sh "$candidate"
+bash scripts/delivery-inventory.sh "$candidate" > "$reports/inventory.txt"
+bash scripts/audit-dependencies.sh "$reports" \
+  "$candidate:backend" "$candidate:backend-test" "$candidate:frontend-build" \
+  "$candidate:gateway" "$candidate:tor" "$candidate:postgres"
+```
+
+Pour actualiser les verrous Python, installer uv 0.13.7 puis lancer
+`bash scripts/lock-backend.sh`. Pour modifier les dépendances npm, mettre à
+jour le verrou avec la version Node fixée dans la CI et valider avec
+`npm ci`. Mettre à jour ensemble les références PostgreSQL de Compose, de la
+CI et du script de recette M7-C. Lors d’un changement d’image Python ou
+Node, aligner la version exacte du runtime de CI. Lors d’une mise à jour
+de Tor, vérifier les index Debian et les versions choisies dans le nouvel
+instantané. Refaire deux builds sans cache et comparer leurs inventaires
+avant de retenir de nouvelles références.
+
 Aucune licence open source n'est définie à ce stade. Le propriétaire reporte toute
 décision de licence après le MVP ; elle ne fait pas partie de la roadmap active.

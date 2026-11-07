@@ -32,7 +32,7 @@ if [[ "$mode" == '--core' ]]; then
   printf '\nPASS: core checks. NOT a stable release gate: use --release to audit dependencies and browser.\n'
   exit 0
 fi
-printf '[8/8] Release gates: named identity, legacy key, npm/Python audits, Playwright\n'
+printf '[8/8] Release gates: named identity, legacy key, candidate audits, Playwright\n'
 legacy="$(docker compose exec -T api python -c 'from app.core.config import get_settings; print(str(get_settings().legacy_api_key_enabled).lower())')"
 if [[ "$legacy" != 'false' ]]; then
   echo 'BLOCKED: legacy API key is enabled. First validate a named ADMIN token, then set OIP_LEGACY_API_KEY_ENABLED=false in .env and recreate api.' >&2
@@ -58,7 +58,15 @@ if identity.get('legacy') is not False or identity.get('role') not in ('VIEWER',
 print('PASS: named authenticated operator')
 PY
 bash scripts/smoke-local.sh
-bash scripts/audit-dependencies.sh
+release_reports="$(mktemp -d "${TMPDIR:-/tmp}/oip-release-reports.XXXXXX")"
+candidate="oip-release-candidate-${release_reports##*.}"
+printf 'Candidate audit reports: %s\n' "$release_reports"
+python3 scripts/ci-index-audit.py
+bash scripts/build-delivery-images.sh "$candidate"
+bash scripts/delivery-inventory.sh "$candidate" > "$release_reports/inventory.txt"
+bash scripts/audit-dependencies.sh "$release_reports" \
+  "$candidate:backend" "$candidate:backend-test" "$candidate:frontend-build" \
+  "$candidate:gateway" "$candidate:tor" "$candidate:postgres"
 command -v npm >/dev/null || { echo 'BLOCKED: npm missing' >&2; exit 2; }
 # Avoid automatically installing Chromium or running scripts from unknown registries.
 [[ -x frontend/node_modules/.bin/playwright ]] || {
